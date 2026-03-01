@@ -167,6 +167,7 @@ func _handle_firing(delta: float) -> void:
 		_fire_timer = fire_interval
 	if Input.is_action_pressed("fire") and _fire_timer >= fire_interval:
 		_fire_timer = 0.0
+		EventBus.player_fired.emit()
 		var dir: Vector2 = _gun_world_dir
 		var eff_bspeed: float = _effective_stat(stats.bullet_speed, &"bullet_speed")
 		_fire_primary(dir, eff_bspeed, 1.0)

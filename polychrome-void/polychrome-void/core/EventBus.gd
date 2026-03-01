@@ -13,6 +13,9 @@ signal bullet_hit_player(damage: float)
 ## Emitted when the player's HP reaches zero.
 signal player_died()
 
+## Emitted whenever the player fires a shot burst.
+signal player_fired()
+
 # ---------------------------------------------------------------------------
 # Enemy signals
 # ---------------------------------------------------------------------------

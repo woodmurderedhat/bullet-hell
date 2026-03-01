@@ -13,6 +13,8 @@ var _fire_timer: float = 0.0
 
 # Spiral state.
 var _spiral_angle: float = 0.0
+var _arc_angle: float = 0.0
+var _cross_flip: bool = false
 
 # Radial burst state — reuses _fire_timer as burst timer.
 # (fire_rate on PatternResource unused for burst; burst_interval governs timing)
@@ -30,6 +32,8 @@ func set_pattern(pattern: PatternResource) -> void:
 	_pattern = pattern
 	_fire_timer = 0.0
 	_spiral_angle = 0.0
+	_arc_angle = 0.0
+	_cross_flip = false
 
 
 func _process(delta: float) -> void:
@@ -42,6 +46,10 @@ func _process(delta: float) -> void:
 		_process_spiral(delta)
 	elif _pattern is RadialBurstPatternResource:
 		_process_radial_burst()
+	elif _pattern is ArcPatternResource:
+		_process_arc_pattern()
+	elif _pattern is CrossPatternResource:
+		_process_cross_pattern()
 
 
 ## Spiral: fires `arms` evenly-spaced bullets, rotating angle_step per tick.
@@ -78,3 +86,42 @@ func _process_radial_burst() -> void:
 		var angle: float = arc * float(b)
 		var dir: Vector2 = Vector2(cos(angle), sin(angle))
 		_bullet_manager.spawn_enemy_bullet(origin, dir, rb.bullet_speed)
+
+
+func _process_arc_pattern() -> void:
+	var arcp: ArcPatternResource = _pattern as ArcPatternResource
+	if _fire_timer < arcp.burst_interval:
+		return
+	_fire_timer -= arcp.burst_interval
+
+	_arc_angle += arcp.sweep_step
+	var origin: Vector2 = _owner_node.position
+	var count: int = maxi(1, arcp.bullet_count)
+	var arc_radians: float = deg_to_rad(arcp.arc_degrees)
+
+	if count == 1:
+		var dir_single: Vector2 = Vector2.from_angle(_arc_angle)
+		_bullet_manager.spawn_enemy_bullet(origin, dir_single, arcp.bullet_speed)
+		return
+
+	for i: int in range(count):
+		var ratio: float = float(i) / float(count - 1)
+		var offset: float = lerpf(-arc_radians * 0.5, arc_radians * 0.5, ratio)
+		var dir: Vector2 = Vector2.from_angle(_arc_angle + offset)
+		_bullet_manager.spawn_enemy_bullet(origin, dir, arcp.bullet_speed)
+
+
+func _process_cross_pattern() -> void:
+	var cp: CrossPatternResource = _pattern as CrossPatternResource
+	if _fire_timer < cp.burst_interval:
+		return
+	_fire_timer -= cp.burst_interval
+
+	var origin: Vector2 = _owner_node.position
+	var base: float = cp.angle_offset + (PI * 0.25 if _cross_flip else 0.0)
+	_cross_flip = not _cross_flip
+
+	for i: int in range(4):
+		var angle: float = base + PI * 0.5 * float(i)
+		var dir: Vector2 = Vector2.from_angle(angle)
+		_bullet_manager.spawn_enemy_bullet(origin, dir, cp.bullet_speed)

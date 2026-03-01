@@ -76,6 +76,12 @@ func _compute_velocity(delta: float) -> Vector2:
 			return _velocity_dashing(to_dir, delta)
 		EnemyResource.MovementType.WAVY:
 			return _velocity_wavy(to_dir, tangent)
+		EnemyResource.MovementType.KITING:
+			return _velocity_kiting(to_dir, tangent, dist)
+		EnemyResource.MovementType.ZIGZAG:
+			return _velocity_zigzag(to_dir, tangent)
+		EnemyResource.MovementType.SENTRY:
+			return Vector2.ZERO
 		_:
 			return to_dir * _resource.speed
 
@@ -127,6 +133,29 @@ func _velocity_wavy(to_dir: Vector2, tangent: Vector2) -> Vector2:
 	if velocity.length() > max_speed:
 		velocity = velocity.normalized() * max_speed
 	return velocity
+
+
+func _velocity_kiting(to_dir: Vector2, tangent: Vector2, dist: float) -> Vector2:
+	var target_range: float = maxf(24.0, _resource.preferred_range)
+	var radial: float = 0.0
+	if dist < target_range * 0.8:
+		radial = -1.0
+	elif dist > target_range * 1.2:
+		radial = 0.7
+	var lateral: float = maxf(0.15, _resource.lateral_weight)
+	var blend: Vector2 = to_dir * radial + tangent * _movement_sign * lateral
+	if blend.length_squared() <= 0.0001:
+		blend = tangent * _movement_sign
+	return blend.normalized() * _resource.speed
+
+
+func _velocity_zigzag(to_dir: Vector2, tangent: Vector2) -> Vector2:
+	var phase: float = _lifetime * (_resource.wave_frequency * 1.8) + _wave_seed
+	var side: float = 1.0 if sin(phase) >= 0.0 else -1.0
+	var blend: Vector2 = to_dir * 0.82 + tangent * side * 0.58
+	if blend.length_squared() <= 0.0001:
+		return to_dir * _resource.speed
+	return blend.normalized() * (_resource.speed * 1.1)
 
 
 func _draw() -> void:

@@ -25,7 +25,12 @@ const RES_WAVE_KITE       := preload("res://data/enemies/wave_kite.tres")
 const RES_ORBIT_BURST     := preload("res://data/enemies/orbit_burst_node.tres")
 const RES_STRAFE_SPIRAL   := preload("res://data/enemies/strafe_spiral_node.tres")
 const RES_DASH_BURST      := preload("res://data/enemies/dash_burst_brute.tres")
+const RES_KITING_SHARD    := preload("res://data/enemies/kiting_shard.tres")
+const RES_ZIGZAG_DART     := preload("res://data/enemies/zigzag_dart.tres")
+const RES_SENTRY_CORE     := preload("res://data/enemies/sentry_core.tres")
 const RES_BOSS_01        := preload("res://data/bosses/boss_01.tres")
+const RES_BOSS_02        := preload("res://data/bosses/boss_02.tres")
+const RES_BOSS_03        := preload("res://data/bosses/boss_03.tres")
 
 const SCENE_ENEMY := preload("res://scenes/Enemy.tscn")
 const SCENE_BOSS  := preload("res://scenes/Boss.tscn")
@@ -67,6 +72,9 @@ func initialise(player: Node2D, bm: BulletManager, cs: CollisionSystem, root: No
 		RES_ORBIT_BURST,
 		RES_STRAFE_SPIRAL,
 		RES_DASH_BURST,
+		RES_KITING_SHARD,
+		RES_ZIGZAG_DART,
+		RES_SENTRY_CORE,
 	]
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.wave_complete.connect(_on_wave_complete)
@@ -111,7 +119,7 @@ func _build_wave_config() -> WaveConfig:
 
 	if is_boss:
 		cfg.enemy_count = 1
-		cfg.boss_resource = RES_BOSS_01
+		cfg.boss_resource = _pick_boss_for_arena(arena_index)
 		cfg.spawn_interval = 0.0
 	else:
 		# Scale enemy count and mix patterns as arenas progress.
@@ -173,6 +181,16 @@ func _pick_enemy_for_arena() -> EnemyResource:
 
 	var pick_idx: int = RandomService.next_int_range(0, unlock_count - 1)
 	return _enemy_roster[pick_idx]
+
+
+func _pick_boss_for_arena(current_arena: int) -> BossResource:
+	var boss_cycle: Array[BossResource] = [RES_BOSS_01, RES_BOSS_02, RES_BOSS_03]
+	if boss_cycle.is_empty():
+		return RES_BOSS_01
+	var cycle_idx: int = int((current_arena / BOSS_ARENA_INTERVAL) - 1) % boss_cycle.size()
+	if cycle_idx < 0:
+		cycle_idx = 0
+	return boss_cycle[cycle_idx]
 
 
 func _random_edge_position() -> Vector2:

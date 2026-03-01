@@ -21,6 +21,8 @@ EventBus="*res://core/EventBus.gd"
 RandomService="*res://core/RandomService.gd"
 SaveService="*res://core/SaveService.gd"
 AudioManager="*res://audio/AudioManager.gd"
+TelemetryService="*res://core/TelemetryService.gd"
+PlatformService="*res://core/PlatformService.gd"
 
 [display]
 

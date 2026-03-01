@@ -9,6 +9,9 @@ enum MovementType {
 	ORBITING,
 	DASHING,
 	WAVY,
+	KITING,
+	ZIGZAG,
+	SENTRY,
 }
 
 ## Unique string key used to identify this enemy type.

@@ -18,6 +18,7 @@ var _score_label: Label
 var _arena_label: Label
 var _wave_label: Label
 var _wave_label_timer: float = 0.0
+var _telemetry_label: Label
 
 
 func _ready() -> void:
@@ -27,6 +28,7 @@ func _ready() -> void:
 	EventBus.wave_complete.connect(_on_wave_complete)
 	EventBus.boss_wave_started.connect(_on_boss_wave_started)
 	EventBus.player_died.connect(_on_player_died)
+	TelemetryService.telemetry_updated.connect(_on_telemetry_updated)
 
 
 func _build_ui() -> void:
@@ -70,6 +72,17 @@ func _build_ui() -> void:
 	_wave_label.add_theme_font_size_override("font_size", 32)
 	_wave_label.visible = false
 	add_child(_wave_label)
+
+	_telemetry_label = Label.new()
+	_telemetry_label.position = Vector2(16.0, 620.0)
+	_telemetry_label.size = Vector2(420.0, 90.0)
+	_telemetry_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_telemetry_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	_telemetry_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_telemetry_label.add_theme_font_size_override("font_size", 14)
+	add_child(_telemetry_label)
+
+	_on_telemetry_updated(TelemetryService.get_snapshot())
 
 
 func _process(delta: float) -> void:
@@ -120,3 +133,30 @@ func _show_wave_message(text: String) -> void:
 	_wave_label.text = text
 	_wave_label.visible = true
 	_wave_label_timer = 2.5
+
+
+func _on_telemetry_updated(snapshot: Dictionary) -> void:
+	var enabled: bool = bool(snapshot.get("overlay_enabled", true))
+	_telemetry_label.visible = enabled
+	if not enabled:
+		return
+
+	var fps_cur: float = float(snapshot.get("fps_current", 0.0))
+	var fps_avg: float = float(snapshot.get("fps_avg", 0.0))
+	var fps_min: float = float(snapshot.get("fps_min", 0.0))
+	var session_time: float = float(snapshot.get("session_time", 0.0))
+	var enemies_killed: int = int(snapshot.get("enemies_killed", 0))
+	var damage_taken: float = float(snapshot.get("damage_taken", 0.0))
+	var damage_dealt: float = float(snapshot.get("damage_dealt", 0.0))
+	var upgrades_chosen: int = int(snapshot.get("upgrades_chosen", 0))
+
+	_telemetry_label.text = "FPS %.1f (avg %.1f / min %.1f)\nTIME %.1fs  KILLS %d  UPG %d\nDMG DEALT %.0f  TAKEN %.0f" % [
+		fps_cur,
+		fps_avg,
+		fps_min,
+		session_time,
+		enemies_killed,
+		upgrades_chosen,
+		damage_dealt,
+		damage_taken,
+	]
