@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"chaos_gamble_01"
+rarity = 1
+tags = [&"Chaos"]
+stat_additive = {}
+stat_multiplicative = {}
+triggers = [&"chaos_gamble"]
+stack_limit = 3
+display_name = "Void Gamble"
+description = "50% chance: gain a random Legendary upgrade. 50% chance: lose 20 HP."

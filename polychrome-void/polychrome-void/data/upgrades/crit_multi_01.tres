@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"crit_multi_01"
+rarity = 1
+tags = [&"Crit"]
+stat_multiplicative = {"bullet_damage": 1.1}
+stat_additive = {}
+triggers = [&"crit_multiplier_2x"]
+stack_limit = 3
+display_name = "Void Strike"
+description = "+10% damage. Crits deal 2× damage instead of 1.5×."

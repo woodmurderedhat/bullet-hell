@@ -1,0 +1,122 @@
+## HUD — heads-up display drawn via CanvasLayer.
+## Shows HP bar, arena counter, score.  Subscribes to EventBus.
+## Add via scenes/HUD.tscn.
+class_name HUD
+extends CanvasLayer
+
+## HP bar dimensions.
+const HP_BAR_POS: Vector2  = Vector2(20.0, 20.0)
+const HP_BAR_SIZE: Vector2 = Vector2(200.0, 16.0)
+
+var _player: Player = null
+var _score: int = 0
+var _arena_index: int = 0
+
+var _hp_bar: ColorRect
+var _hp_bg: ColorRect
+var _score_label: Label
+var _arena_label: Label
+var _wave_label: Label
+var _wave_label_timer: float = 0.0
+
+
+func _ready() -> void:
+	layer = 10
+	_build_ui()
+	EventBus.enemy_died.connect(_on_enemy_died)
+	EventBus.wave_complete.connect(_on_wave_complete)
+	EventBus.boss_wave_started.connect(_on_boss_wave_started)
+	EventBus.player_died.connect(_on_player_died)
+
+
+func _build_ui() -> void:
+	# HP background.
+	_hp_bg = ColorRect.new()
+	_hp_bg.color = Color(0.15, 0.15, 0.15)
+	_hp_bg.position = HP_BAR_POS
+	_hp_bg.size = HP_BAR_SIZE
+	add_child(_hp_bg)
+
+	# HP fill.
+	_hp_bar = ColorRect.new()
+	_hp_bar.color = Color(0.2, 1.0, 0.3)
+	_hp_bar.position = HP_BAR_POS
+	_hp_bar.size = HP_BAR_SIZE
+	add_child(_hp_bar)
+
+	# Score label (top right).
+	_score_label = Label.new()
+	_score_label.position = Vector2(1060.0, 16.0)
+	_score_label.size = Vector2(200.0, 30.0)
+	_score_label.text = "SCORE  0"
+	_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	add_child(_score_label)
+
+	# Arena label (top centre).
+	_arena_label = Label.new()
+	_arena_label.position = Vector2(540.0, 16.0)
+	_arena_label.size = Vector2(200.0, 30.0)
+	_arena_label.text = "ARENA  1"
+	_arena_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(_arena_label)
+
+	# Centre wave announcement label (hidden most of the time).
+	_wave_label = Label.new()
+	_wave_label.position = Vector2(390.0, 320.0)
+	_wave_label.size = Vector2(500.0, 60.0)
+	_wave_label.text = ""
+	_wave_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_wave_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_wave_label.add_theme_font_size_override("font_size", 32)
+	_wave_label.visible = false
+	add_child(_wave_label)
+
+
+func _process(delta: float) -> void:
+	_update_hp_bar()
+
+	if _wave_label_timer > 0.0:
+		_wave_label_timer -= delta
+		if _wave_label_timer <= 0.0:
+			_wave_label.visible = false
+
+
+## Bind the Player node so the HUD can read current HP.
+func set_player(player: Player) -> void:
+	_player = player
+
+
+func _update_hp_bar() -> void:
+	if _player == null:
+		return
+	var effective_max: float = _player.effective_max_hp()
+	var frac: float = _player.stats.current_hp / maxf(effective_max, 1.0)
+	frac = clampf(frac, 0.0, 1.0)
+	_hp_bar.size.x = HP_BAR_SIZE.x * frac
+	# Colour shift: green → red as HP drops.
+	_hp_bar.color = Color(1.0 - frac, frac * 0.9, 0.1 + frac * 0.2)
+
+
+func _on_enemy_died(_id: int, _pos: Vector2, score: int) -> void:
+	_score += score
+	_score_label.text = "SCORE  %d" % _score
+	EventBus.score_changed.emit(_score)
+
+
+func _on_wave_complete(idx: int) -> void:
+	_arena_index = idx + 1
+	_arena_label.text = "ARENA  %d" % (_arena_index + 1)
+
+
+func _on_boss_wave_started(_idx: int) -> void:
+	_show_wave_message("!! BOSS !!")
+
+
+func _on_player_died() -> void:
+	_show_wave_message("YOU DIED")
+
+
+func _show_wave_message(text: String) -> void:
+	_wave_label.text = text
+	_wave_label.visible = true
+	_wave_label_timer = 2.5

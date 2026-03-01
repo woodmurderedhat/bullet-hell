@@ -1,0 +1,47 @@
+[gd_scene load_steps=11 format=3 uid="uid://main_scene"]
+
+[ext_resource type="Script" path="res://scenes/Main.gd" id="1_main"]
+[ext_resource type="Script" path="res://combat/BulletManager.gd" id="2_bm"]
+[ext_resource type="Script" path="res://combat/CollisionSystem.gd" id="3_cs"]
+[ext_resource type="Script" path="res://systems/SpawnDirector.gd" id="4_sd"]
+[ext_resource type="Script" path="res://systems/UpgradePool.gd" id="5_up"]
+[ext_resource type="Script" path="res://player/Player.gd" id="6_pl"]
+[ext_resource type="Script" path="res://systems/ModifierComponent.gd" id="7_mc"]
+[ext_resource type="Script" path="res://ui/HUD.gd" id="8_hud"]
+[ext_resource type="Script" path="res://ui/UpgradePicker.gd" id="9_upk"]
+[ext_resource type="Script" path="res://ui/MetaMenu.gd" id="10_mm"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(640, 360)
+zoom = Vector2(1, 1)
+
+[node name="BulletManager" type="Node2D" parent="."]
+script = ExtResource("2_bm")
+
+[node name="CollisionSystem" type="Node" parent="."]
+script = ExtResource("3_cs")
+
+[node name="SpawnDirector" type="Node" parent="."]
+script = ExtResource("4_sd")
+
+[node name="UpgradePool" type="Node" parent="."]
+script = ExtResource("5_up")
+
+[node name="Player" type="Node2D" parent="."]
+position = Vector2(640, 360)
+script = ExtResource("6_pl")
+
+[node name="ModifierComponent" type="Node" parent="Player"]
+script = ExtResource("7_mc")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("8_hud")
+
+[node name="UpgradePicker" type="CanvasLayer" parent="."]
+script = ExtResource("9_upk")
+
+[node name="MetaMenu" type="CanvasLayer" parent="."]
+script = ExtResource("10_mm")

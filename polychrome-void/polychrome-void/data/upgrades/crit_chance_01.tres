@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"crit_chance_01"
+rarity = 0
+tags = [&"Crit"]
+stat_additive = {}
+stat_multiplicative = {}
+triggers = [&"crit_10"]
+stack_limit = 5
+display_name = "Sharp Edge"
+description = "+10% critical strike chance. Crits deal 1.5× damage."

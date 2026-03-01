@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"sustain_maxhp_01"
+rarity = 1
+tags = [&"Sustain"]
+stat_additive = {"max_hp": 50.0, "hp_regen": 0.5}
+stat_multiplicative = {}
+triggers = []
+stack_limit = 3
+display_name = "Vital Matrix"
+description = "+50 max HP and +0.5 HP/s regeneration."

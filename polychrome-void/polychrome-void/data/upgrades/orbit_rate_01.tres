@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"orbit_rate_01"
+rarity = 1
+tags = [&"Orbit"]
+stat_multiplicative = {"fire_rate": 1.25}
+stat_additive = {}
+triggers = [&"orbit_damage"]
+stack_limit = 3
+display_name = "Gyro Rhythym"
+description = "+25% fire rate. Orbit fragments deal contact damage."

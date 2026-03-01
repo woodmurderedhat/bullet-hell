@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"entropy_chaos_02"
+rarity = 0
+tags = [&"Entropy"]
+stat_additive = {"bullet_damage": 6.0}
+stat_multiplicative = {}
+triggers = [&"random_direction"]
+stack_limit = 5
+display_name = "Scatter Flux"
+description = "+6 damage. Controlled chaos spreads more bullets."

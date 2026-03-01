@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"fractal_split_01"
+rarity = 0
+tags = [&"Fractal"]
+stat_multiplicative = {"fire_rate": 1.1}
+stat_additive = {}
+triggers = [&"split_on_hit"]
+stack_limit = 3
+display_name = "Fission Round"
+description = "+10% fire rate. Bullets fork into 2 on first hit."

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"vector_speed_01"
+rarity = 0
+tags = [&"Vector"]
+stat_additive = {"speed": 25.0}
+stat_multiplicative = {}
+triggers = []
+stack_limit = 5
+display_name = "Velocity Boost"
+description = "+25 movement speed. Evade patterns with greater ease."

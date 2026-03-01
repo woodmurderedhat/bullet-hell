@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"shield_block_02"
+rarity = 0
+tags = [&"Shield"]
+stat_additive = {"max_hp": 15.0}
+stat_multiplicative = {}
+triggers = [&"absorb_one"]
+stack_limit = 3
+display_name = "Reactive Hull"
+description = "+15 max HP. Additional absorb charge per arena."

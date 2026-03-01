@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"orbit_shield_01"
+rarity = 0
+tags = [&"Orbit"]
+stat_additive = {"max_hp": 15.0}
+stat_multiplicative = {}
+triggers = [&"orbit_shield"]
+stack_limit = 3
+display_name = "Orbit Shell"
+description = "+15 max HP. A rotating shield fragment orbits you."

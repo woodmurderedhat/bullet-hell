@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"fractal_split_02"
+rarity = 0
+tags = [&"Fractal"]
+stat_additive = {"bullet_damage": 3.0}
+stat_multiplicative = {}
+triggers = [&"split_on_hit"]
+stack_limit = 3
+display_name = "Shard Screen"
+description = "+3 damage. Adds another split fragment per hit."

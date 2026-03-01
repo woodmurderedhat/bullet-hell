@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"entropy_chaos_01"
+rarity = 0
+tags = [&"Entropy"]
+stat_multiplicative = {"fire_rate": 1.08}
+stat_additive = {}
+triggers = [&"random_direction"]
+stack_limit = 5
+display_name = "Static Noise"
+description = "+8% fire rate. Bullets deviate randomly ±10°."

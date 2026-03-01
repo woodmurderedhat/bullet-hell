@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://stat_math_test"]
+
+[ext_resource type="Script" path="res://tools/StatMathTest.gd" id="1_smt"]
+
+[node name="StatMathTest" type="Node"]
+script = ExtResource("1_smt")

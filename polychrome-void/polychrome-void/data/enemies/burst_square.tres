@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyResource" load_steps=2 format=3 uid="uid://burst_square"]
+
+[ext_resource type="Script" path="res://data/EnemyResource.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = &"burst_square"
+base_hp = 60.0
+speed = 55.0
+collision_radius = 18.0
+pattern_id = &"radial_burst_01"
+color = Color(0.2, 0.4, 1.0, 1.0)
+score_value = 15

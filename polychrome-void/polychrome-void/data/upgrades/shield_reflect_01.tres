@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"shield_reflect_01"
+rarity = 1
+tags = [&"Shield"]
+stat_additive = {"max_hp": 20.0}
+stat_multiplicative = {}
+triggers = [&"reflect_bullet"]
+stack_limit = 2
+display_name = "Mirror Edge"
+description = "+20 max HP. Absorbed bullets are reflected back as player bullets."

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"sustain_regen_02"
+rarity = 0
+tags = [&"Sustain"]
+stat_additive = {"hp_regen": 1.0}
+stat_multiplicative = {}
+triggers = []
+stack_limit = 5
+display_name = "Pulse Mend"
+description = "+1 HP/s regen. Stacks with other Sustain upgrades."

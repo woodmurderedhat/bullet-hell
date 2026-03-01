@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"pulse_aoe_01"
+rarity = 1
+tags = [&"Pulse"]
+stat_multiplicative = {"bullet_damage": 1.2}
+stat_additive = {}
+triggers = [&"pulse_aoe"]
+stack_limit = 3
+display_name = "Shockwave"
+description = "+20% bullet damage. Bullets explode on impact."
