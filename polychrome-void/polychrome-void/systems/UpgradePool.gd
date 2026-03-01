@@ -22,7 +22,19 @@ const ALL_UPGRADES: Array[String] = [
 	"res://data/upgrades/pulse_aoe_01.tres",
 	"res://data/upgrades/fractal_split_01.tres",
 	"res://data/upgrades/fractal_split_02.tres",
+	"res://data/upgrades/fractal_splitfire_01.tres",
+	"res://data/upgrades/fractal_splitfire_02.tres",
+	"res://data/upgrades/fractal_splitfire_03.tres",
 	"res://data/upgrades/fractal_chain_01.tres",
+	"res://data/upgrades/wave_sine_01.tres",
+	"res://data/upgrades/wave_sine_02.tres",
+	"res://data/upgrades/wave_sine_03.tres",
+	"res://data/upgrades/wave_fan_01.tres",
+	"res://data/upgrades/wave_fan_02.tres",
+	"res://data/upgrades/wave_fan_03.tres",
+	"res://data/upgrades/wave_pulse_01.tres",
+	"res://data/upgrades/wave_pulse_02.tres",
+	"res://data/upgrades/wave_pulse_03.tres",
 	"res://data/upgrades/entropy_chaos_01.tres",
 	"res://data/upgrades/entropy_chaos_02.tres",
 	"res://data/upgrades/entropy_wild_01.tres",
@@ -67,8 +79,12 @@ func _sync_meta_unlocks() -> void:
 
 ## Generate `count` unique upgrade offers.
 ## dominant_tags should be the active archetype tags from ModifierComponent.
-func generate_offer(count: int, dominant_tags: Array[StringName]) -> Array[UpgradeResource]:
-	var available: Array[UpgradeResource] = _build_available_pool()
+func generate_offer(
+	count: int,
+	dominant_tags: Array[StringName],
+	modifier: ModifierComponent = null
+) -> Array[UpgradeResource]:
+	var available: Array[UpgradeResource] = _build_available_pool(modifier)
 	if available.is_empty():
 		return []
 
@@ -91,9 +107,11 @@ func generate_offer(count: int, dominant_tags: Array[StringName]) -> Array[Upgra
 ## Build the pool of currently available upgrades.
 ## Filters by meta unlock requirements (if id is in ALL_UPGRADES but not unlocked,
 ## it is still included — unlocks only gate locked content injected by MetaMenu).
-func _build_available_pool() -> Array[UpgradeResource]:
+func _build_available_pool(modifier: ModifierComponent = null) -> Array[UpgradeResource]:
 	var pool: Array[UpgradeResource] = []
 	for res: UpgradeResource in _all_resources:
+		if modifier != null and not modifier.can_apply_upgrade(res):
+			continue
 		pool.append(res)
 	return pool
 

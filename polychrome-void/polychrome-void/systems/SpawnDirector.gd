@@ -18,6 +18,13 @@ const BOSS_ARENA_INTERVAL: int = 5  ## Boss every N-th arena.
 ## Preloaded resources.
 const RES_BASIC_SQUARE   := preload("res://data/enemies/basic_square.tres")
 const RES_BURST_SQUARE   := preload("res://data/enemies/burst_square.tres")
+const RES_STRAFER_DIAMOND := preload("res://data/enemies/strafer_diamond.tres")
+const RES_ORBIT_HEX       := preload("res://data/enemies/orbit_hex.tres")
+const RES_DASH_SPIKE      := preload("res://data/enemies/dash_spike.tres")
+const RES_WAVE_KITE       := preload("res://data/enemies/wave_kite.tres")
+const RES_ORBIT_BURST     := preload("res://data/enemies/orbit_burst_node.tres")
+const RES_STRAFE_SPIRAL   := preload("res://data/enemies/strafe_spiral_node.tres")
+const RES_DASH_BURST      := preload("res://data/enemies/dash_burst_brute.tres")
 const RES_BOSS_01        := preload("res://data/bosses/boss_01.tres")
 
 const SCENE_ENEMY := preload("res://scenes/Enemy.tscn")
@@ -41,6 +48,7 @@ var _spawned_in_wave: int = 0
 var _spawn_timer: float = 0.0
 var _wave_active: bool = false
 var _next_enemy_id: int = 0
+var _enemy_roster: Array[EnemyResource] = []
 
 
 ## Call from Main once all dependencies are available.
@@ -49,6 +57,17 @@ func initialise(player: Node2D, bm: BulletManager, cs: CollisionSystem, root: No
 	_bullet_manager = bm
 	_collision_system = cs
 	_scene_root = root
+	_enemy_roster = [
+		RES_BASIC_SQUARE,
+		RES_BURST_SQUARE,
+		RES_STRAFER_DIAMOND,
+		RES_ORBIT_HEX,
+		RES_DASH_SPIKE,
+		RES_WAVE_KITE,
+		RES_ORBIT_BURST,
+		RES_STRAFE_SPIRAL,
+		RES_DASH_BURST,
+	]
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.wave_complete.connect(_on_wave_complete)
 
@@ -98,11 +117,7 @@ func _build_wave_config() -> WaveConfig:
 		# Scale enemy count and mix patterns as arenas progress.
 		cfg.enemy_count = 4 + arena_index * 2
 		cfg.spawn_interval = maxf(0.4, 1.2 - arena_index * 0.05)
-		# Alternate enemy types by arena parity.
-		if arena_index % 2 == 0:
-			cfg.enemy_resource = RES_BASIC_SQUARE
-		else:
-			cfg.enemy_resource = RES_BURST_SQUARE
+		cfg.enemy_resource = _pick_enemy_for_arena()
 
 	return cfg
 
@@ -118,7 +133,8 @@ func _spawn_next_enemy() -> void:
 	if _current_config.boss_wave:
 		_spawn_boss(id, pos)
 	else:
-		_spawn_enemy(id, pos, _current_config.enemy_resource)
+		var pick: EnemyResource = _pick_enemy_for_arena()
+		_spawn_enemy(id, pos, pick)
 
 	_alive_enemies += 1
 
@@ -134,9 +150,7 @@ func _spawn_enemy(id: int, pos: Vector2, res: EnemyResource) -> void:
 	# Attach pattern executor.
 	var pe: PatternExecutor = PatternExecutor.new()
 	enemy.add_child(pe)
-	# Resolve pattern resource from id.
-	var pattern_res: PatternResource = _resolve_pattern(res.pattern_id)
-	pe.setup(pattern_res, _bullet_manager, enemy)
+	pe.setup(res.pattern, _bullet_manager, enemy)
 
 
 func _spawn_boss(id: int, pos: Vector2) -> void:
@@ -149,14 +163,16 @@ func _spawn_boss(id: int, pos: Vector2) -> void:
 	_collision_system.register_enemy(boss)
 
 
-func _resolve_pattern(pattern_id: StringName) -> PatternResource:
-	match pattern_id:
-		&"spiral_01":
-			return load("res://data/patterns/spiral_01.tres") as PatternResource
-		&"radial_burst_01":
-			return load("res://data/patterns/radial_burst_01.tres") as PatternResource
-		_:
-			return load("res://data/patterns/spiral_01.tres") as PatternResource
+func _pick_enemy_for_arena() -> EnemyResource:
+	if _enemy_roster.is_empty():
+		return RES_BASIC_SQUARE
+
+	var unlock_count: int = mini(_enemy_roster.size(), 2 + (arena_index / 2))
+	if unlock_count <= 1:
+		return _enemy_roster[0]
+
+	var pick_idx: int = RandomService.next_int_range(0, unlock_count - 1)
+	return _enemy_roster[pick_idx]
 
 
 func _random_edge_position() -> Vector2:

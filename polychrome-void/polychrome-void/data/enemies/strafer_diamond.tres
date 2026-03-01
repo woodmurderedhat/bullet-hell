@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyResource" load_steps=3 format=3 uid="uid://strafer_diamond"]
+
+[ext_resource type="Script" path="res://data/EnemyResource.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://data/patterns/spiral_02.tres" id="2_pattern"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = &"strafer_diamond"
+base_hp = 52.0
+speed = 95.0
+collision_radius = 16.0
+pattern = ExtResource("2_pattern")
+movement_type = 1
+lateral_weight = 0.78
+preferred_range = 170.0
+dash_interval = 1.6
+dash_duration = 0.24
+dash_speed_multiplier = 2.1
+wave_frequency = 2.5
+wave_amplitude = 90.0
+color = Color(0.95, 0.7, 0.2, 1.0)
+score_value = 14

@@ -26,7 +26,7 @@ var _run_active: bool = false
 
 func _ready() -> void:
 	# Wire systems.
-	_collision_system.initialise(_bullet_manager, _player)
+	_collision_system.initialise(_bullet_manager, _player, _modifier_component)
 	_player.initialise(_bullet_manager, _collision_system, _modifier_component)
 	_player.arena_min = ARENA_MIN
 	_player.arena_max = ARENA_MAX
@@ -42,11 +42,13 @@ func _ready() -> void:
 	EventBus.player_died.connect(_on_player_died)
 	EventBus.upgrade_chosen.connect(_on_upgrade_chosen)
 	EventBus.score_changed.connect(_on_score_changed)
+	EventBus.wave_complete.connect(_on_wave_complete)
 
 	# Show meta menu first; play begins when button is pressed.
 	_meta_menu.play_pressed.connect(_start_run)
 	_meta_menu.visible = true
 	_set_run_systems_active(false)
+	_player.set_gameplay_input_enabled(false)
 
 
 ## Begin a fresh run.
@@ -57,6 +59,7 @@ func _start_run() -> void:
 	_player.stats.current_hp = _player.stats.max_hp
 	_player.position = Vector2(640.0, 360.0)
 	_player.visible = true
+	_player.set_gameplay_input_enabled(true)
 	_score = 0
 	_run_active = true
 	_set_run_systems_active(true)
@@ -65,6 +68,8 @@ func _start_run() -> void:
 
 func _set_run_systems_active(active: bool) -> void:
 	_player.set_process(active)
+	if not active:
+		_player.set_gameplay_input_enabled(false)
 	_bullet_manager.set_process(active)
 	_collision_system.set_process(active)
 	_spawn_director.set_process(active)
@@ -96,6 +101,7 @@ func _on_player_died() -> void:
 
 
 func _on_upgrade_chosen(res: Resource) -> void:
+	_player.set_gameplay_input_enabled(true)
 	_modifier_component.apply_upgrade(res as UpgradeResource)
 	# Notify player so CollisionSystem damage value stays current.
 	_player.refresh_stats()
@@ -112,3 +118,8 @@ func _on_upgrade_chosen(res: Resource) -> void:
 
 func _on_score_changed(new_score: int) -> void:
 	_score = new_score
+
+
+func _on_wave_complete(_arena_index: int) -> void:
+	if _run_active:
+		_player.set_gameplay_input_enabled(false)

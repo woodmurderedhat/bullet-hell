@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="EnemyResource" load_steps=2 format=3 uid="uid://burst_square"]
+[gd_resource type="Resource" script_class="EnemyResource" load_steps=3 format=3 uid="uid://burst_square"]
 
 [ext_resource type="Script" path="res://data/EnemyResource.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://data/patterns/radial_burst_01.tres" id="2_pattern"]
 
 [resource]
 script = ExtResource("1_enemy")
@@ -8,6 +9,14 @@ id = &"burst_square"
 base_hp = 60.0
 speed = 55.0
 collision_radius = 18.0
-pattern_id = &"radial_burst_01"
+pattern = ExtResource("2_pattern")
+movement_type = 0
+lateral_weight = 0.65
+preferred_range = 180.0
+dash_interval = 1.8
+dash_duration = 0.28
+dash_speed_multiplier = 2.2
+wave_frequency = 2.2
+wave_amplitude = 85.0
 color = Color(0.2, 0.4, 1.0, 1.0)
 score_value = 15

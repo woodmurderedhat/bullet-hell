@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"wave_sine_03"
+rarity = 2
+tags = [&"Vector"]
+stat_multiplicative = {"bullet_damage": 1.1}
+stat_additive = {}
+triggers = [&"wave_sine"]
+prerequisites = [&"wave_sine_02"]
+required_upgrade_stacks = {"wave_sine_01": 2}
+stack_limit = 1
+display_name = "Resonance Core"
+description = "+10% bullet damage. Sine waves gain capstone potency."

@@ -72,7 +72,7 @@ func _show_picker() -> void:
 	if _modifier_component != null:
 		tags = _modifier_component.get_active_tags(_upgrade_pool._all_resources)
 
-	_offers = _upgrade_pool.generate_offer(3, tags)
+	_offers = _upgrade_pool.generate_offer(3, tags, _modifier_component)
 
 	var total_w: float = 3.0 * CARD_SIZE.x + 2.0 * CARD_GAP
 	var start_x: float = (1280.0 - total_w) * 0.5

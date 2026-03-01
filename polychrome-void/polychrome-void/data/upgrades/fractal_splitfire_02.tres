@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"fractal_splitfire_02"
+rarity = 1
+tags = [&"Fractal"]
+stat_multiplicative = {"fire_rate": 1.05}
+stat_additive = {"bullet_speed": 30.0}
+triggers = [&"split_on_fire"]
+prerequisites = [&"fractal_splitfire_01"]
+required_upgrade_stacks = {}
+stack_limit = 2
+display_name = "Prism Scatter"
+description = "+5% fire rate, +30 bullet speed. Side fragments multiply."

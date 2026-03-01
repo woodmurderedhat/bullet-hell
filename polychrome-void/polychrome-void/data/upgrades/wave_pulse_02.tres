@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"wave_pulse_02"
+rarity = 1
+tags = [&"Pulse"]
+stat_multiplicative = {"fire_rate": 1.04}
+stat_additive = {}
+triggers = [&"wave_pulse"]
+prerequisites = [&"wave_pulse_01"]
+required_upgrade_stacks = {}
+stack_limit = 2
+display_name = "Echo Ring"
+description = "+4% fire rate. Pulse ring adds extra projectiles."

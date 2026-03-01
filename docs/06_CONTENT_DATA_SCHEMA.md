@@ -14,7 +14,15 @@
 - base_hp
 - speed
 - collision_radius
-- pattern_id
+- pattern
+- movement_type
+- lateral_weight
+- preferred_range
+- dash_interval
+- dash_duration
+- dash_speed_multiplier
+- wave_frequency
+- wave_amplitude
 
 ## Pattern Resource
 - id

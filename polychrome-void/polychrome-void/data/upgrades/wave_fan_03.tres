@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"wave_fan_03"
+rarity = 2
+tags = [&"Fractal"]
+stat_multiplicative = {"bullet_damage": 1.12}
+stat_additive = {}
+triggers = [&"wave_fan"]
+prerequisites = [&"wave_fan_02"]
+required_upgrade_stacks = {"wave_fan_01": 2}
+stack_limit = 1
+display_name = "Helix Crown"
+description = "+12% bullet damage. Fan burst reaches capstone intensity."

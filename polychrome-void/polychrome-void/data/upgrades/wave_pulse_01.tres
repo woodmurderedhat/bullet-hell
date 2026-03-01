@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"wave_pulse_01"
+rarity = 0
+tags = [&"Pulse"]
+stat_multiplicative = {}
+stat_additive = {"bullet_damage": 2.0}
+triggers = [&"wave_pulse"]
+prerequisites = []
+required_upgrade_stacks = {}
+stack_limit = 2
+display_name = "Ring Pulse"
+description = "+2 bullet damage. Firing releases a radial pulse ring."

@@ -16,6 +16,9 @@ var _multiplicative: Dictionary = {}
 ## Active trigger IDs (used by Player/enemies to resolve special behaviour).
 var _triggers: Array[StringName] = []
 
+## Trigger stack counts by trigger id.
+var _trigger_counts: Dictionary = {}
+
 
 ## Apply an upgrade resource.  Respects stack_limit.
 func apply_upgrade(res: UpgradeResource) -> void:
@@ -33,6 +36,8 @@ func apply_upgrade(res: UpgradeResource) -> void:
 		_multiplicative[key] = _multiplicative.get(key, 1.0) * float(res.stat_multiplicative[key])
 
 	for trigger: StringName in res.triggers:
+		var trigger_str: String = str(trigger)
+		_trigger_counts[trigger_str] = int(_trigger_counts.get(trigger_str, 0)) + 1
 		if not _triggers.has(trigger):
 			_triggers.append(trigger)
 
@@ -47,7 +52,36 @@ func get_stat(base: float, key: StringName) -> float:
 
 ## Returns true if the given trigger is active.
 func has_trigger(trigger: StringName) -> bool:
-	return _triggers.has(trigger)
+	return get_trigger_stack(trigger) > 0
+
+
+## Returns the number of stacks owned for a specific upgrade id.
+func get_upgrade_stack(upgrade_id: StringName) -> int:
+	return int(_stack_counts.get(str(upgrade_id), 0))
+
+
+## Returns the number of stacks owned for a specific trigger id.
+func get_trigger_stack(trigger: StringName) -> int:
+	return int(_trigger_counts.get(str(trigger), 0))
+
+
+## Checks whether an upgrade can currently be applied.
+## Used by UpgradePool to gate offers by prerequisites and stack limits.
+func can_apply_upgrade(res: UpgradeResource) -> bool:
+	if get_upgrade_stack(res.id) >= res.stack_limit:
+		return false
+
+	for prerequisite: StringName in res.prerequisites:
+		if get_upgrade_stack(prerequisite) <= 0:
+			return false
+
+	for key: Variant in res.required_upgrade_stacks.keys():
+		var required_id: StringName = StringName(str(key))
+		var required_stacks: int = int(res.required_upgrade_stacks[key])
+		if get_upgrade_stack(required_id) < required_stacks:
+			return false
+
+	return true
 
 
 ## Collect all active archetype tags from applied upgrades.
@@ -69,3 +103,4 @@ func reset() -> void:
 	_additive.clear()
 	_multiplicative.clear()
 	_triggers.clear()
+	_trigger_counts.clear()

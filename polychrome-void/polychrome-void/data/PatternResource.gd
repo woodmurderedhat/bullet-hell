@@ -3,7 +3,7 @@
 class_name PatternResource
 extends Resource
 
-## Unique key matching EnemyResource.pattern_id.
+## Unique key used for tooling/debug display.
 @export var id: StringName = &""
 
 ## Bullets fired per second.

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RadialBurstPatternResource" load_steps=2 format=3 uid="uid://rburst_02"]
+
+[ext_resource type="Script" path="res://data/RadialBurstPatternResource.gd" id="1_rburst"]
+
+[resource]
+script = ExtResource("1_rburst")
+id = &"radial_burst_02"
+fire_rate = 1.0
+bullet_speed = 220.0
+bullet_count = 14
+burst_interval = 1.1

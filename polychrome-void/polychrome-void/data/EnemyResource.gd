@@ -3,6 +3,14 @@
 class_name EnemyResource
 extends Resource
 
+enum MovementType {
+	CHASER,
+	STRAFING,
+	ORBITING,
+	DASHING,
+	WAVY,
+}
+
 ## Unique string key used to identify this enemy type.
 @export var id: StringName = &""
 
@@ -16,9 +24,32 @@ extends Resource
 ## Radius used for manual collision checks (pixels).
 @export var collision_radius: float = 16.0
 
-## The pattern resource id this enemy fires.
-## Must match a PatternResource.id loaded by BulletManager/PatternExecutor.
-@export var pattern_id: StringName = &""
+## Pattern this enemy uses for firing.
+@export var pattern: PatternResource = null
+
+## Movement behaviour profile.
+@export var movement_type: MovementType = MovementType.CHASER
+
+## How strongly strafe/orbit mixes lateral movement [0..1].
+@export_range(0.0, 1.0, 0.01) var lateral_weight: float = 0.65
+
+## Preferred radius around player for ORBITING behaviour.
+@export var preferred_range: float = 180.0
+
+## Seconds between DASHING bursts.
+@export var dash_interval: float = 1.8
+
+## Duration in seconds for one DASHING burst.
+@export var dash_duration: float = 0.28
+
+## Speed multiplier while dashing.
+@export var dash_speed_multiplier: float = 2.2
+
+## Wavy phase speed in radians per second.
+@export var wave_frequency: float = 2.2
+
+## Wavy lateral velocity contribution in px/s.
+@export var wave_amplitude: float = 85.0
 
 ## Visual tint for the enemy square (informational colour coding).
 @export var color: Color = Color(0.9, 0.2, 0.2, 1.0)

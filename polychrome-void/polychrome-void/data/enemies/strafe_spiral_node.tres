@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyResource" load_steps=3 format=3 uid="uid://strafe_spiral_node"]
+
+[ext_resource type="Script" path="res://data/EnemyResource.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://data/patterns/spiral_03.tres" id="2_pattern"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = &"strafe_spiral_node"
+base_hp = 66.0
+speed = 104.0
+collision_radius = 16.0
+pattern = ExtResource("2_pattern")
+movement_type = 1
+lateral_weight = 0.86
+preferred_range = 175.0
+dash_interval = 1.4
+dash_duration = 0.22
+dash_speed_multiplier = 2.4
+wave_frequency = 2.7
+wave_amplitude = 96.0
+color = Color(1.0, 0.55, 0.2, 1.0)
+score_value = 22

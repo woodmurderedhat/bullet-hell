@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyResource" load_steps=3 format=3 uid="uid://dash_spike"]
+
+[ext_resource type="Script" path="res://data/EnemyResource.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://data/patterns/spiral_03.tres" id="2_pattern"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = &"dash_spike"
+base_hp = 58.0
+speed = 88.0
+collision_radius = 17.0
+pattern = ExtResource("2_pattern")
+movement_type = 3
+lateral_weight = 0.64
+preferred_range = 180.0
+dash_interval = 1.2
+dash_duration = 0.23
+dash_speed_multiplier = 2.8
+wave_frequency = 2.4
+wave_amplitude = 84.0
+color = Color(1.0, 0.35, 0.45, 1.0)
+score_value = 20

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"wave_fan_01"
+rarity = 0
+tags = [&"Fractal"]
+stat_multiplicative = {}
+stat_additive = {"bullet_speed": 15.0}
+triggers = [&"wave_fan"]
+prerequisites = []
+required_upgrade_stacks = {}
+stack_limit = 2
+display_name = "Arc Bloom"
+description = "+15 bullet speed. Primary fire emits a fan burst."

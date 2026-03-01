@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"wave_sine_01"
+rarity = 0
+tags = [&"Vector"]
+stat_multiplicative = {}
+stat_additive = {"bullet_speed": 20.0}
+triggers = [&"wave_sine"]
+prerequisites = []
+required_upgrade_stacks = {}
+stack_limit = 3
+display_name = "Sine Trace"
+description = "+20 bullet speed. Shots oscillate as sine waves."

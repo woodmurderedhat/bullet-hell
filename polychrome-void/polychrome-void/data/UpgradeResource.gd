@@ -25,6 +25,13 @@ enum Rarity { COMMON = 0, RARE = 1, EPIC = 2, LEGENDARY = 3 }
 ## Trigger IDs this upgrade activates (resolved by ModifierComponent).
 @export var triggers: Array[StringName] = []
 
+## Required upgrade IDs that must already be owned before this can be offered.
+@export var prerequisites: Array[StringName] = []
+
+## Required stack thresholds for specific upgrade IDs.
+## Example: {"fractal_split_01": 2} means that upgrade must be stacked twice.
+@export var required_upgrade_stacks: Dictionary = {}
+
 ## Maximum times this upgrade can be stacked in a single run.
 @export var stack_limit: int = 5
 
