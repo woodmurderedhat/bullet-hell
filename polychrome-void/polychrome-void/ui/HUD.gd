@@ -7,6 +7,11 @@ extends CanvasLayer
 ## HP bar dimensions.
 const HP_BAR_POS: Vector2  = Vector2(20.0, 20.0)
 const HP_BAR_SIZE: Vector2 = Vector2(200.0, 16.0)
+const COLOR_BG_PANEL: Color = Color(0.09, 0.10, 0.14, 0.86)
+const COLOR_ACCENT_SCORE: Color = Color(1.0, 0.76, 0.28)
+const COLOR_ACCENT_ARENA: Color = Color(0.35, 0.84, 1.0)
+const COLOR_ACCENT_WAVE: Color = Color(0.95, 0.40, 1.0)
+const COLOR_ACCENT_TELEMETRY: Color = Color(0.62, 0.95, 0.90)
 
 var _player: Player = null
 var _score: int = 0
@@ -34,7 +39,7 @@ func _ready() -> void:
 func _build_ui() -> void:
 	# HP background.
 	_hp_bg = ColorRect.new()
-	_hp_bg.color = Color(0.15, 0.15, 0.15)
+	_hp_bg.color = COLOR_BG_PANEL
 	_hp_bg.position = HP_BAR_POS
 	_hp_bg.size = HP_BAR_SIZE
 	add_child(_hp_bg)
@@ -50,16 +55,20 @@ func _build_ui() -> void:
 	_score_label = Label.new()
 	_score_label.position = Vector2(1060.0, 16.0)
 	_score_label.size = Vector2(200.0, 30.0)
-	_score_label.text = "SCORE  0"
+	_score_label.text = "S 0"
 	_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_score_label.add_theme_color_override("font_color", COLOR_ACCENT_SCORE)
+	_score_label.add_theme_font_size_override("font_size", 24)
 	add_child(_score_label)
 
 	# Arena label (top centre).
 	_arena_label = Label.new()
 	_arena_label.position = Vector2(540.0, 16.0)
 	_arena_label.size = Vector2(200.0, 30.0)
-	_arena_label.text = "ARENA  1"
+	_arena_label.text = "A 1"
 	_arena_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_arena_label.add_theme_color_override("font_color", COLOR_ACCENT_ARENA)
+	_arena_label.add_theme_font_size_override("font_size", 24)
 	add_child(_arena_label)
 
 	# Centre wave announcement label (hidden most of the time).
@@ -70,6 +79,7 @@ func _build_ui() -> void:
 	_wave_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_wave_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_wave_label.add_theme_font_size_override("font_size", 32)
+	_wave_label.add_theme_color_override("font_color", COLOR_ACCENT_WAVE)
 	_wave_label.visible = false
 	add_child(_wave_label)
 
@@ -80,6 +90,7 @@ func _build_ui() -> void:
 	_telemetry_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_telemetry_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_telemetry_label.add_theme_font_size_override("font_size", 14)
+	_telemetry_label.add_theme_color_override("font_color", COLOR_ACCENT_TELEMETRY)
 	add_child(_telemetry_label)
 
 	_on_telemetry_updated(TelemetryService.get_snapshot())
@@ -112,13 +123,13 @@ func _update_hp_bar() -> void:
 
 func _on_enemy_died(_id: int, _pos: Vector2, score: int) -> void:
 	_score += score
-	_score_label.text = "SCORE  %d" % _score
+	_score_label.text = "S %d" % _score
 	EventBus.score_changed.emit(_score)
 
 
 func _on_wave_complete(idx: int) -> void:
 	_arena_index = idx + 1
-	_arena_label.text = "ARENA  %d" % (_arena_index + 1)
+	_arena_label.text = "A %d" % (_arena_index + 1)
 
 
 func _on_boss_wave_started(_idx: int) -> void:
@@ -150,7 +161,7 @@ func _on_telemetry_updated(snapshot: Dictionary) -> void:
 	var damage_dealt: float = float(snapshot.get("damage_dealt", 0.0))
 	var upgrades_chosen: int = int(snapshot.get("upgrades_chosen", 0))
 
-	_telemetry_label.text = "FPS %.1f (avg %.1f / min %.1f)\nTIME %.1fs  KILLS %d  UPG %d\nDMG DEALT %.0f  TAKEN %.0f" % [
+	_telemetry_label.text = "FPS %.1f | AVG %.1f | MIN %.1f\nT %.1fs  K %d  U %d\nDEAL %.0f  TAKE %.0f" % [
 		fps_cur,
 		fps_avg,
 		fps_min,

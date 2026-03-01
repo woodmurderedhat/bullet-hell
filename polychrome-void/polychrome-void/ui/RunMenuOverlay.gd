@@ -16,6 +16,15 @@ const ACTIONS_TO_REBIND: Array[StringName] = [
 	&"pause",
 ]
 
+const COLOR_OVERLAY: Color = Color(0.0, 0.0, 0.0, 0.78)
+const COLOR_PANEL_BG: Color = Color(0.08, 0.10, 0.16, 0.96)
+const COLOR_PANEL_BORDER: Color = Color(0.42, 0.78, 1.0, 0.48)
+const COLOR_TITLE: Color = Color(0.95, 0.45, 1.0)
+const COLOR_TEXT: Color = Color(0.88, 0.93, 1.0)
+const COLOR_TEXT_DIM: Color = Color(0.70, 0.82, 0.95)
+const COLOR_BUTTON_PRIMARY: Color = Color(0.22, 0.56, 0.98)
+const COLOR_BUTTON_SECONDARY: Color = Color(0.18, 0.24, 0.36)
+
 var _bg: ColorRect
 var _pause_panel: Panel
 var _settings_panel: Panel
@@ -53,7 +62,7 @@ func show_result_menu(won: bool, score: int, arena_reached: int, telemetry: Dict
 	_tutorial_returns_to_pause = false
 	_show_only(_result_panel)
 	_result_title.text = "RUN COMPLETE" if won else "RUN FAILED"
-	_result_summary.text = "SCORE %d\nARENA %d\nTIME %.1fs\nKILLS %d" % [
+	_result_summary.text = "S %d\nA %d\nT %.1fs\nK %d" % [
 		score,
 		arena_reached + 1,
 		float(telemetry.get("session_time", 0.0)),
@@ -88,7 +97,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _build_ui() -> void:
 	_bg = ColorRect.new()
-	_bg.color = Color(0.0, 0.0, 0.0, 0.78)
+	_bg.color = COLOR_OVERLAY
 	_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_bg)
 
@@ -111,6 +120,13 @@ func _make_panel(title: String, pos: Vector2, size: Vector2) -> Panel:
 	var panel: Panel = Panel.new()
 	panel.position = pos
 	panel.size = size
+
+	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
+	panel_style.bg_color = COLOR_PANEL_BG
+	panel_style.border_color = COLOR_PANEL_BORDER
+	panel_style.set_border_width_all(2)
+	panel_style.set_corner_radius_all(6)
+	panel.add_theme_stylebox_override("panel", panel_style)
 	add_child(panel)
 
 	var title_label: Label = Label.new()
@@ -119,37 +135,39 @@ func _make_panel(title: String, pos: Vector2, size: Vector2) -> Panel:
 	title_label.size = Vector2(size.x, 36.0)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 28)
+	title_label.add_theme_color_override("font_color", COLOR_TITLE)
 	panel.add_child(title_label)
 
 	return panel
 
 
 func _build_pause_panel() -> void:
-	var resume_btn: Button = _make_button("RESUME", Vector2(130.0, 90.0), Vector2(200.0, 46.0))
+	var resume_btn: Button = _make_button("RESUME", Vector2(130.0, 90.0), Vector2(200.0, 46.0), COLOR_BUTTON_PRIMARY)
 	resume_btn.pressed.connect(func() -> void: resume_requested.emit())
 	_pause_panel.add_child(resume_btn)
 
-	var settings_btn: Button = _make_button("SETTINGS", Vector2(130.0, 150.0), Vector2(200.0, 46.0))
+	var settings_btn: Button = _make_button("SETTINGS", Vector2(130.0, 150.0), Vector2(200.0, 46.0), COLOR_BUTTON_SECONDARY)
 	settings_btn.pressed.connect(func() -> void:
 		_update_setting_values()
 		_show_only(_settings_panel)
 	)
 	_pause_panel.add_child(settings_btn)
 
-	var tutorial_btn: Button = _make_button("HOW TO PLAY", Vector2(130.0, 210.0), Vector2(200.0, 46.0))
+	var tutorial_btn: Button = _make_button("HOW TO PLAY", Vector2(130.0, 210.0), Vector2(200.0, 46.0), COLOR_BUTTON_SECONDARY)
 	tutorial_btn.pressed.connect(func() -> void: show_tutorial_menu(true))
 	_pause_panel.add_child(tutorial_btn)
 
-	var quit_btn: Button = _make_button("QUIT TO MENU", Vector2(130.0, 270.0), Vector2(200.0, 46.0))
+	var quit_btn: Button = _make_button("QUIT", Vector2(130.0, 270.0), Vector2(200.0, 46.0), COLOR_BUTTON_SECONDARY)
 	quit_btn.pressed.connect(func() -> void: quit_to_menu_requested.emit())
 	_pause_panel.add_child(quit_btn)
 
 
 func _build_settings_panel() -> void:
 	var music_lbl: Label = Label.new()
-	music_lbl.text = "Music Volume"
+	music_lbl.text = "MUSIC"
 	music_lbl.position = Vector2(50.0, 90.0)
 	music_lbl.size = Vector2(180.0, 28.0)
+	music_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	_settings_panel.add_child(music_lbl)
 
 	_music_slider = HSlider.new()
@@ -162,9 +180,10 @@ func _build_settings_panel() -> void:
 	_settings_panel.add_child(_music_slider)
 
 	var sfx_lbl: Label = Label.new()
-	sfx_lbl.text = "SFX Volume"
+	sfx_lbl.text = "SFX"
 	sfx_lbl.position = Vector2(50.0, 140.0)
 	sfx_lbl.size = Vector2(180.0, 28.0)
+	sfx_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	_settings_panel.add_child(sfx_lbl)
 
 	_sfx_slider = HSlider.new()
@@ -177,25 +196,27 @@ func _build_settings_panel() -> void:
 	_settings_panel.add_child(_sfx_slider)
 
 	_telemetry_toggle = CheckBox.new()
-	_telemetry_toggle.text = "Show Telemetry Overlay"
+	_telemetry_toggle.text = "Telemetry HUD"
 	_telemetry_toggle.position = Vector2(50.0, 200.0)
+	_telemetry_toggle.add_theme_color_override("font_color", COLOR_TEXT)
 	_telemetry_toggle.toggled.connect(func(pressed: bool) -> void: TelemetryService.set_overlay_enabled(pressed))
 	_settings_panel.add_child(_telemetry_toggle)
 
 	_cloud_toggle = CheckBox.new()
-	_cloud_toggle.text = "Enable Cloud Save Mirror"
+	_cloud_toggle.text = "Cloud Mirror"
 	_cloud_toggle.position = Vector2(50.0, 240.0)
+	_cloud_toggle.add_theme_color_override("font_color", COLOR_TEXT)
 	_cloud_toggle.toggled.connect(func(pressed: bool) -> void: SaveService.set_save("cloud_enabled", pressed))
 	_settings_panel.add_child(_cloud_toggle)
 
-	var controls_btn: Button = _make_button("REMAP CONTROLS", Vector2(50.0, 300.0), Vector2(220.0, 42.0))
+	var controls_btn: Button = _make_button("REMAP KEYS", Vector2(50.0, 300.0), Vector2(220.0, 42.0), COLOR_BUTTON_SECONDARY)
 	controls_btn.pressed.connect(func() -> void:
 		_update_action_button_texts()
 		_show_only(_controls_panel)
 	)
 	_settings_panel.add_child(controls_btn)
 
-	var back_btn: Button = _make_button("BACK", Vector2(430.0, 390.0), Vector2(140.0, 42.0))
+	var back_btn: Button = _make_button("BACK", Vector2(430.0, 390.0), Vector2(140.0, 42.0), COLOR_BUTTON_PRIMARY)
 	back_btn.pressed.connect(func() -> void: _show_only(_pause_panel))
 	_settings_panel.add_child(back_btn)
 
@@ -207,9 +228,10 @@ func _build_controls_panel() -> void:
 		label.text = str(action).replace("_", " ").to_upper()
 		label.position = Vector2(40.0, y)
 		label.size = Vector2(220.0, 30.0)
+		label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 		_controls_panel.add_child(label)
 
-		var btn: Button = _make_button("", Vector2(280.0, y - 4.0), Vector2(320.0, 36.0))
+		var btn: Button = _make_button("", Vector2(280.0, y - 4.0), Vector2(320.0, 36.0), COLOR_BUTTON_SECONDARY)
 		var captured_action: StringName = action
 		btn.pressed.connect(func() -> void:
 			_pending_rebind_action = captured_action
@@ -219,7 +241,7 @@ func _build_controls_panel() -> void:
 		_action_buttons[action] = btn
 		y += 58.0
 
-	var back_btn: Button = _make_button("BACK", Vector2(460.0, 480.0), Vector2(140.0, 42.0))
+	var back_btn: Button = _make_button("BACK", Vector2(460.0, 480.0), Vector2(140.0, 42.0), COLOR_BUTTON_PRIMARY)
 	back_btn.pressed.connect(func() -> void: _show_only(_settings_panel))
 	_controls_panel.add_child(back_btn)
 
@@ -233,6 +255,7 @@ func _build_result_panel() -> void:
 	_result_title.size = Vector2(500.0, 40.0)
 	_result_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_result_title.add_theme_font_size_override("font_size", 28)
+	_result_title.add_theme_color_override("font_color", COLOR_TITLE)
 	_result_panel.add_child(_result_title)
 
 	_result_summary = Label.new()
@@ -242,13 +265,14 @@ func _build_result_panel() -> void:
 	_result_summary.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_result_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_result_summary.add_theme_font_size_override("font_size", 18)
+	_result_summary.add_theme_color_override("font_color", COLOR_TEXT)
 	_result_panel.add_child(_result_summary)
 
-	var retry_btn: Button = _make_button("PLAY AGAIN", Vector2(150.0, 300.0), Vector2(200.0, 44.0))
+	var retry_btn: Button = _make_button("PLAY AGAIN", Vector2(150.0, 300.0), Vector2(200.0, 44.0), COLOR_BUTTON_PRIMARY)
 	retry_btn.pressed.connect(func() -> void: restart_requested.emit())
 	_result_panel.add_child(retry_btn)
 
-	var menu_btn: Button = _make_button("META MENU", Vector2(150.0, 354.0), Vector2(200.0, 44.0))
+	var menu_btn: Button = _make_button("MENU", Vector2(150.0, 354.0), Vector2(200.0, 44.0), COLOR_BUTTON_SECONDARY)
 	menu_btn.pressed.connect(func() -> void: quit_to_menu_requested.emit())
 	_result_panel.add_child(menu_btn)
 
@@ -258,10 +282,11 @@ func _build_tutorial_panel() -> void:
 	info.position = Vector2(40.0, 86.0)
 	info.size = Vector2(680.0, 390.0)
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	info.text = "WASD/ARROWS to move. SPACE/RIGHT MOUSE to fire. LEFT MOUSE to move-to-cursor.\n\nSurvive each wave, then choose one of three upgrades.\nEvery 5th arena is a boss arena.\n\nBuild synergies across tags: VECTOR, ORBIT, PULSE, FRACTAL, ENTROPY, SUSTAIN, CRIT, SHIELD, CHAOS.\n\nPress ESC anytime during a run to pause and adjust settings."
+	info.add_theme_color_override("font_color", COLOR_TEXT)
+	info.text = "MOVE: WASD / ARROWS\nFIRE: SPACE / RMB\nDASH TO CURSOR: LMB\n\nCLEAR WAVES. PICK 1 OF 3 UPGRADES.\nBOSS EVERY 5TH ARENA.\n\nTAGS: VECTOR ORBIT PULSE FRACTAL\nENTROPY SUSTAIN CRIT SHIELD CHAOS\n\nESC = PAUSE"
 	_tutorial_panel.add_child(info)
 
-	var back_btn: Button = _make_button("BACK", Vector2(590.0, 500.0), Vector2(140.0, 42.0))
+	var back_btn: Button = _make_button("BACK", Vector2(590.0, 500.0), Vector2(140.0, 42.0), COLOR_BUTTON_PRIMARY)
 	back_btn.pressed.connect(func() -> void:
 		if _tutorial_returns_to_pause:
 			_show_only(_pause_panel)
@@ -272,11 +297,28 @@ func _build_tutorial_panel() -> void:
 	_tutorial_panel.add_child(back_btn)
 
 
-func _make_button(text: String, pos: Vector2, size: Vector2) -> Button:
+func _make_button(text: String, pos: Vector2, size: Vector2, base_color: Color) -> Button:
 	var btn: Button = Button.new()
 	btn.text = text
 	btn.position = pos
 	btn.size = size
+
+	var normal: StyleBoxFlat = StyleBoxFlat.new()
+	normal.bg_color = base_color
+	normal.border_color = Color(1.0, 1.0, 1.0, 0.30)
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(4)
+
+	var hover: StyleBoxFlat = normal.duplicate() as StyleBoxFlat
+	hover.bg_color = base_color.lightened(0.12)
+
+	var pressed: StyleBoxFlat = normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = base_color.darkened(0.16)
+
+	btn.add_theme_stylebox_override("normal", normal)
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("pressed", pressed)
+	btn.add_theme_color_override("font_color", COLOR_TEXT)
 	return btn
 
 
