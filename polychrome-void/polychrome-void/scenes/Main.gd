@@ -41,6 +41,7 @@ func _ready() -> void:
 	# Wire systems.
 	_collision_system.initialise(_bullet_manager, _player, _modifier_component)
 	_collision_system.set_enemy_damage_scale(1.0)
+	_collision_system.set_boss_damage_scale(1.0)
 	_player.initialise(_bullet_manager, _collision_system, _modifier_component)
 	_player.arena_min = _arena_min_runtime
 	_player.arena_max = _arena_max_runtime
@@ -120,7 +121,8 @@ func _apply_expansion_profile(profile: Dictionary) -> void:
 
 	var enemy_damage_mult: float = float(profile.get("enemy_damage_multiplier", 1.0))
 	var boss_damage_mult: float = float(profile.get("boss_damage_multiplier", 1.0))
-	_collision_system.set_enemy_damage_scale(maxf(enemy_damage_mult, boss_damage_mult))
+	_collision_system.set_enemy_damage_scale(enemy_damage_mult)
+	_collision_system.set_boss_damage_scale(boss_damage_mult)
 
 
 func _build_expansion_profile_from_active_unlocks() -> Dictionary:

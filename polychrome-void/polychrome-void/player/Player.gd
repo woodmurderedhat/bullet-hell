@@ -19,7 +19,7 @@ class PlayerStats:
 const TRIANGLE_HALF: float = 12.0
 
 ## Invincibility frames after taking a hit (seconds).
-const INVINCIBILITY_TIME: float = 0.5
+const INVINCIBILITY_TIME: float = 0.35
 const SPLIT_FIRE_ARC_DEGREES: float = 10.0
 const RANDOM_SPREAD_DEGREES_PER_STACK: float = 10.0
 const SECONDARY_DAMAGE_SCALE: float = 0.65

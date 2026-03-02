@@ -7,6 +7,8 @@
 script = ExtResource("1_enemy")
 id = &"zigzag_dart"
 speed = 108.0
+projectile_damage = 10.0
+contact_damage = 13.0
 collision_radius = 14.0
 pattern = ExtResource("2_pattern")
 movement_type = 6

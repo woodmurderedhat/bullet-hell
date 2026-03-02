@@ -57,6 +57,8 @@ var _player_age: PackedFloat32Array
 var _player_split_depth: PackedInt32Array
 var _player_split_budget: PackedInt32Array
 var _player_damage_scale: PackedFloat32Array
+var _enemy_source_damage: PackedFloat32Array
+var _enemy_source_is_boss: PackedInt32Array
 
 # Bullet material colours.
 const PLAYER_BULLET_COLOR: Color = Color(0.4, 1.0, 0.6, 1.0)
@@ -99,6 +101,10 @@ func _ready() -> void:
 	_player_split_budget.resize(MAX_BULLETS)
 	_player_damage_scale = PackedFloat32Array()
 	_player_damage_scale.resize(MAX_BULLETS)
+	_enemy_source_damage = PackedFloat32Array()
+	_enemy_source_damage.resize(MAX_BULLETS)
+	_enemy_source_is_boss = PackedInt32Array()
+	_enemy_source_is_boss.resize(MAX_BULLETS)
 
 	# Mark all slots inactive.
 	for i: int in range(MAX_BULLETS):
@@ -119,6 +125,8 @@ func _ready() -> void:
 		_player_split_depth[i] = 0
 		_player_split_budget[i] = 0
 		_player_damage_scale[i] = 1.0
+		_enemy_source_damage[i] = 1.0
+		_enemy_source_is_boss[i] = 0
 
 	_player_mmi = _build_multimesh_instance(
 		Vector2(PLAYER_BULLET_HALF_W * 2.0, PLAYER_BULLET_HALF_H * 2.0),
@@ -235,7 +243,13 @@ func spawn_player_bullet_advanced(
 
 
 ## Spawn an enemy bullet at world position pos, travelling in direction dir at speed.
-func spawn_enemy_bullet(pos: Vector2, dir: Vector2, speed: float) -> void:
+func spawn_enemy_bullet(
+	pos: Vector2,
+	dir: Vector2,
+	speed: float,
+	base_damage: float = 1.0,
+	is_boss_source: bool = false
+) -> void:
 	var slot: int = _find_free_enemy_slot()
 	if slot == -1:
 		return
@@ -246,6 +260,8 @@ func spawn_enemy_bullet(pos: Vector2, dir: Vector2, speed: float) -> void:
 	_enemy_pool[base + 3] = dir.y * speed
 	_enemy_pool[base + 4] = BULLET_LIFETIME
 	_enemy_pool[base + 5] = 1.0
+	_enemy_source_damage[slot] = maxf(0.0, base_damage)
+	_enemy_source_is_boss[slot] = 1 if is_boss_source else 0
 
 
 ## Deactivate a specific player bullet slot (called by CollisionSystem on hit).
@@ -278,6 +294,8 @@ func deactivate_enemy_bullet(slot: int) -> void:
 		return
 	var base: int = slot * SLOT
 	_enemy_pool[base + 5] = 0.0
+	_enemy_source_damage[slot] = 1.0
+	_enemy_source_is_boss[slot] = 0
 	_enemy_multimesh.set_instance_transform_2d(slot, Transform2D(0.0, HIDDEN_POS))
 
 
@@ -289,6 +307,18 @@ func get_enemy_pool() -> PackedFloat32Array:
 ## Returns a read-only view of the player bullet pool for CollisionSystem.
 func get_player_pool() -> PackedFloat32Array:
 	return _player_pool
+
+
+func get_enemy_bullet_damage(slot: int) -> float:
+	if slot < 0 or slot >= MAX_BULLETS:
+		return 1.0
+	return _enemy_source_damage[slot]
+
+
+func is_enemy_bullet_from_boss(slot: int) -> bool:
+	if slot < 0 or slot >= MAX_BULLETS:
+		return false
+	return _enemy_source_is_boss[slot] != 0
 
 
 func get_player_bullet_split_depth(slot: int) -> int:
@@ -441,5 +471,7 @@ func clear_all() -> void:
 		_player_split_depth[i] = 0
 		_player_split_budget[i] = 0
 		_player_damage_scale[i] = 1.0
+		_enemy_source_damage[i] = 1.0
+		_enemy_source_is_boss[i] = 0
 		_player_multimesh.set_instance_transform_2d(i, hidden_xform)
 		_enemy_multimesh.set_instance_transform_2d(i, hidden_xform)

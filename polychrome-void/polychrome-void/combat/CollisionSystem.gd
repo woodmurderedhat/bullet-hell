@@ -12,6 +12,7 @@ const SPLIT_MAX_CHILDREN: int = 6
 const CHAIN_BASE_RADIUS: float = 120.0
 const PULSE_BASE_RADIUS: float = 56.0
 const REFLECT_DEFAULT_SPEED: float = 480.0
+const CONTACT_TICK_SECONDS: float = 0.35
 
 const SLOT: int = 6  # Must match BulletManager.SLOT.
 
@@ -23,12 +24,15 @@ var _enemies: Array = []
 
 var _player_damage: float = 10.0  # Updated by Player via set_player_damage().
 var _enemy_damage_scale: float = 1.0
+var _boss_damage_scale: float = 1.0
 var _modifier: ModifierComponent = null
 var _absorb_charges: int = 0
+var _contact_next_hit_time: Dictionary = {}
 
 
 func _ready() -> void:
 	EventBus.wave_complete.connect(_on_wave_complete)
+	EventBus.enemy_died.connect(_on_enemy_died)
 
 
 ## Called by Main once all systems are in the scene tree.
@@ -63,10 +67,15 @@ func set_enemy_damage_scale(scale: float) -> void:
 	_enemy_damage_scale = maxf(0.1, scale)
 
 
-func _process(_delta: float) -> void:
+func set_boss_damage_scale(scale: float) -> void:
+	_boss_damage_scale = maxf(0.1, scale)
+
+
+func _process(delta: float) -> void:
 	if _bullet_manager == null or _player == null:
 		return
 	_check_enemy_bullets_vs_player()
+	_check_enemy_contact_vs_player(delta)
 	_check_player_bullets_vs_enemies()
 
 
@@ -95,7 +104,42 @@ func _check_enemy_bullets_vs_player() -> void:
 			if _consume_absorb_charge():
 				_try_reflect_bullet(hit_pos, hit_vel)
 				continue
-			EventBus.bullet_hit_player.emit(1.0 * _enemy_damage_scale)
+			var base_damage: float = _bullet_manager.get_enemy_bullet_damage(i)
+			var from_boss: bool = _bullet_manager.is_enemy_bullet_from_boss(i)
+			var scale: float = _boss_damage_scale if from_boss else _enemy_damage_scale
+			EventBus.bullet_hit_player.emit(base_damage * scale)
+
+
+func _check_enemy_contact_vs_player(_delta: float) -> void:
+	if not is_instance_valid(_player):
+		return
+	if _enemies.is_empty():
+		return
+
+	var px: float = _player.position.x
+	var py: float = _player.position.y
+	var now: float = Time.get_ticks_msec() * 0.001
+
+	for enemy in _enemies:
+		if not is_instance_valid(enemy):
+			continue
+
+		var combined_r: float = PLAYER_RADIUS + float(enemy.collision_radius)
+		var dx: float = float(enemy.position.x) - px
+		var dy: float = float(enemy.position.y) - py
+		if dx * dx + dy * dy >= combined_r * combined_r:
+			continue
+
+		var enemy_id: int = int(enemy.enemy_id)
+		var next_time: float = float(_contact_next_hit_time.get(enemy_id, 0.0))
+		if now < next_time:
+			continue
+
+		_contact_next_hit_time[enemy_id] = now + CONTACT_TICK_SECONDS
+		var base_contact_damage: float = float(enemy.contact_damage)
+		var from_boss: bool = bool(enemy.is_boss_source)
+		var scale: float = _boss_damage_scale if from_boss else _enemy_damage_scale
+		EventBus.bullet_hit_player.emit(base_contact_damage * scale)
 
 
 ## Check all active player bullets against each registered enemy.
@@ -301,3 +345,8 @@ func _refresh_absorb_charges() -> void:
 
 func _on_wave_complete(_arena_index: int) -> void:
 	_refresh_absorb_charges()
+	_contact_next_hit_time.clear()
+
+
+func _on_enemy_died(enemy_id: int, _position: Vector2, _score: int) -> void:
+	_contact_next_hit_time.erase(enemy_id)

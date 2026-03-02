@@ -24,6 +24,12 @@ enum MovementType {
 ## Movement speed in pixels per second.
 @export var speed: float = 80.0
 
+## Damage dealt by this enemy's bullets before runtime multipliers.
+@export var projectile_damage: float = 8.0
+
+## Damage dealt by body contact ticks before runtime multipliers.
+@export var contact_damage: float = 12.0
+
 ## Radius used for manual collision checks (pixels).
 @export var collision_radius: float = 16.0
 

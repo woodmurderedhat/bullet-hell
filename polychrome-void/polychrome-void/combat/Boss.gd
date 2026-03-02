@@ -8,6 +8,9 @@ extends Node2D
 ## Forwarded fields used by CollisionSystem.
 var enemy_id: int = 0
 var collision_radius: float = 40.0
+var projectile_damage: float = 12.0
+var contact_damage: float = 18.0
+var is_boss_source: bool = true
 
 var _resource: BossResource = null
 var _current_hp: float = 0.0
@@ -47,6 +50,9 @@ func setup_boss(
 	_current_hp = scaled_hp
 	enemy_id = id
 	collision_radius = res.collision_radius
+	projectile_damage = res.projectile_damage
+	contact_damage = res.contact_damage
+	is_boss_source = true
 	_player_ref = player
 	_bullet_manager = bm
 	_intelligence_tier = maxi(0, intelligence_tier)
@@ -169,3 +175,11 @@ func _die() -> void:
 	var score_val: int = _resource.score_value if _resource != null else 0
 	EventBus.enemy_died.emit(enemy_id, position, score_val)
 	queue_free()
+
+
+func get_projectile_damage() -> float:
+	return projectile_damage
+
+
+func is_boss_unit() -> bool:
+	return true

@@ -53,4 +53,6 @@ script = ExtResource("1_boss")
 id = &"boss_01"
 base_hp = 6000.0
 speed = 55.0
+projectile_damage = 26.0
+contact_damage = 20.0
 phases = Array[ExtResource("2_phase")]([SubResource("phase_0"), SubResource("phase_1"), SubResource("phase_2")])

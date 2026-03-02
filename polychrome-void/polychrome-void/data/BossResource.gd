@@ -12,6 +12,12 @@ extends Resource
 ## Movement speed in pixels/second (base; each phase may scale this).
 @export var speed: float = 60.0
 
+## Damage dealt by this boss' bullets before runtime multipliers.
+@export var projectile_damage: float = 12.0
+
+## Damage dealt by body contact ticks before runtime multipliers.
+@export var contact_damage: float = 18.0
+
 ## Collision radius used by CollisionSystem.
 @export var collision_radius: float = 40.0
 
