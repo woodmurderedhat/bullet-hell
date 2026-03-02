@@ -15,14 +15,25 @@ const COLOR_BUTTON_SECONDARY: Color = Color(0.18, 0.22, 0.34)
 const COLOR_BUTTON_UNLOCK: Color = Color(0.30, 0.20, 0.40)
 const COLOR_BUTTON_DONE: Color = Color(0.16, 0.30, 0.22)
 
+const CATEGORY_ORDER: Array[int] = [
+	ExpansionUnlockResource.Category.BOSS_ROSTER,
+	ExpansionUnlockResource.Category.ENEMY_ROSTER,
+	ExpansionUnlockResource.Category.ELITE_ARCHETYPE,
+	ExpansionUnlockResource.Category.DAMAGE_TIER,
+	ExpansionUnlockResource.Category.INTELLIGENCE_TIER,
+	ExpansionUnlockResource.Category.ARENA_PROFILE,
+	ExpansionUnlockResource.Category.CHALLENGE_MOD,
+]
+
 var _currency_label: Label
-var _unlock_buttons: Array[Button] = []
+var _unlock_buttons_by_id: Dictionary = {}
 var _leaderboard_label: Label
 var _slot_label: Label
 var _mode_label: Label
 var _loadout_label: Label
 var _daily_label: Label
 var _expansion_unlocks: Array[ExpansionUnlockResource] = []
+var _expansion_by_id: Dictionary = {}
 var _active_expansion_ids: Array[StringName] = []
 
 signal play_pressed()
@@ -113,20 +124,23 @@ func _build_ui() -> void:
 	_daily_label.add_theme_color_override("font_color", COLOR_ALT_INFO)
 	add_child(_daily_label)
 
-	# Expansion unlock grid.
-	var grid_x: float = 340.0
-	var grid_y: float = 210.0
-	for i: int in range(_expansion_unlocks.size()):
-		var btn: Button = Button.new()
-		btn.position = Vector2(grid_x, grid_y + i * 60.0)
-		btn.size = Vector2(600.0, 48.0)
-		btn.text = "..."
-		btn.disabled = false
-		_style_button(btn, COLOR_BUTTON_UNLOCK)
-		var cap_i: int = i
-		btn.pressed.connect(func() -> void: _on_unlock_pressed(cap_i))
-		add_child(btn)
-		_unlock_buttons.append(btn)
+	var sections_title: Label = Label.new()
+	sections_title.text = "EXPANSION UNLOCKS"
+	sections_title.position = Vector2(340.0, 188.0)
+	sections_title.size = Vector2(600.0, 24.0)
+	sections_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sections_title.add_theme_color_override("font_color", COLOR_INFO)
+	add_child(sections_title)
+
+	var sections_hint: Label = Label.new()
+	sections_hint.text = "BUY = purchase • ENABLE = activate for next run • ACTIVE = currently enabled"
+	sections_hint.position = Vector2(340.0, 210.0)
+	sections_hint.size = Vector2(600.0, 22.0)
+	sections_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sections_hint.add_theme_color_override("font_color", COLOR_ALT_INFO)
+	add_child(sections_hint)
+
+	_build_unlock_sections()
 
 	# Play button.
 	var play_btn: Button = Button.new()
@@ -175,26 +189,34 @@ func refresh_menu() -> void:
 	_leaderboard_label.text = "\n".join(lines)
 
 	# Refresh expansion unlock button states.
-	for i: int in range(_expansion_unlocks.size()):
-		if i < _unlock_buttons.size():
-			var unlock_res: ExpansionUnlockResource = _expansion_unlocks[i]
-			var unlocked: bool = SaveService.is_expansion_unlocked(unlock_res.id)
-			var active: bool = _active_expansion_ids.has(unlock_res.id)
-			_unlock_buttons[i].text = _unlock_button_text(unlock_res, unlocked, active)
-			_unlock_buttons[i].disabled = false
-			if active:
-				_style_button(_unlock_buttons[i], COLOR_BUTTON_DONE)
-			elif unlocked:
-				_style_button(_unlock_buttons[i], COLOR_BUTTON_SECONDARY)
-			else:
-				_style_button(_unlock_buttons[i], COLOR_BUTTON_UNLOCK)
+	for unlock_id: Variant in _unlock_buttons_by_id.keys():
+		var btn: Button = _unlock_buttons_by_id[unlock_id] as Button
+		var unlock_res: ExpansionUnlockResource = _expansion_by_id.get(unlock_id, null) as ExpansionUnlockResource
+		if btn == null or unlock_res == null:
+			continue
+
+		var unlocked: bool = SaveService.is_expansion_unlocked(unlock_res.id)
+		var active: bool = _active_expansion_ids.has(unlock_res.id)
+		var purchasable: bool = _can_purchase_unlock(unlock_res)
+		btn.text = _unlock_button_text(unlock_res, unlocked, active, purchasable)
+		btn.disabled = (not unlocked) and (not purchasable)
+
+		if active:
+			_style_button(btn, COLOR_BUTTON_DONE)
+		elif unlocked:
+			_style_button(btn, COLOR_BUTTON_SECONDARY)
+		else:
+			_style_button(btn, COLOR_BUTTON_UNLOCK)
 
 
-func _on_unlock_pressed(index: int) -> void:
-	if index < 0 or index >= _expansion_unlocks.size():
+func _on_unlock_pressed(unlock_id: StringName) -> void:
+	if not _expansion_by_id.has(unlock_id):
 		return
 
-	var unlock_res: ExpansionUnlockResource = _expansion_unlocks[index]
+	var unlock_res: ExpansionUnlockResource = _expansion_by_id[unlock_id] as ExpansionUnlockResource
+	if unlock_res == null:
+		return
+
 	var purchased: bool = SaveService.is_expansion_unlocked(unlock_res.id)
 	if not purchased:
 		if not _can_purchase_unlock(unlock_res):
@@ -253,16 +275,94 @@ func _loadout_name(loadout_idx: int) -> String:
 			return "BALANCED"
 
 
-func _unlock_button_text(unlock_res: ExpansionUnlockResource, unlocked: bool, active: bool) -> String:
+func _unlock_button_text(
+	unlock_res: ExpansionUnlockResource,
+	unlocked: bool,
+	active: bool,
+	purchasable: bool
+) -> String:
 	if not unlocked:
+		if not purchasable:
+			return "LOCKED  %s" % unlock_res.display_name
 		return "BUY  %s  •  %d" % [unlock_res.display_name, unlock_res.cost]
 	if active:
 		return "ACTIVE  ✓  %s" % unlock_res.display_name
 	return "ENABLE  %s" % unlock_res.display_name
 
 
+func _build_unlock_sections() -> void:
+	_unlock_buttons_by_id.clear()
+
+	var tabs: TabContainer = TabContainer.new()
+	tabs.position = Vector2(340.0, 236.0)
+	tabs.size = Vector2(600.0, 334.0)
+	add_child(tabs)
+
+	for category: int in CATEGORY_ORDER:
+		var section: VBoxContainer = VBoxContainer.new()
+		section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		section.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		tabs.add_child(section)
+		tabs.set_tab_title(tabs.get_tab_count() - 1, _category_label(category))
+
+		var scroll: ScrollContainer = ScrollContainer.new()
+		scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		section.add_child(scroll)
+
+		var list: VBoxContainer = VBoxContainer.new()
+		list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		list.add_theme_constant_override("separation", 6)
+		scroll.add_child(list)
+
+		var category_items: Array[ExpansionUnlockResource] = []
+		for unlock_res: ExpansionUnlockResource in _expansion_unlocks:
+			if unlock_res.category == category:
+				category_items.append(unlock_res)
+
+		if category_items.is_empty():
+			var empty_label: Label = Label.new()
+			empty_label.text = "No unlocks in this section."
+			empty_label.add_theme_color_override("font_color", COLOR_ALT_INFO)
+			list.add_child(empty_label)
+			continue
+
+		for unlock_res: ExpansionUnlockResource in category_items:
+			var btn: Button = Button.new()
+			btn.custom_minimum_size = Vector2(560.0, 44.0)
+			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			btn.text = "..."
+			_style_button(btn, COLOR_BUTTON_UNLOCK)
+			var captured_id: StringName = unlock_res.id
+			btn.pressed.connect(func() -> void: _on_unlock_pressed(captured_id))
+			list.add_child(btn)
+			_unlock_buttons_by_id[captured_id] = btn
+
+
+func _category_label(category: int) -> String:
+	match category:
+		ExpansionUnlockResource.Category.BOSS_ROSTER:
+			return "BOSSES"
+		ExpansionUnlockResource.Category.ENEMY_ROSTER:
+			return "ENEMIES"
+		ExpansionUnlockResource.Category.ELITE_ARCHETYPE:
+			return "ELITES"
+		ExpansionUnlockResource.Category.DAMAGE_TIER:
+			return "DAMAGE"
+		ExpansionUnlockResource.Category.INTELLIGENCE_TIER:
+			return "INTELLIGENCE"
+		ExpansionUnlockResource.Category.ARENA_PROFILE:
+			return "ARENA"
+		ExpansionUnlockResource.Category.CHALLENGE_MOD:
+			return "MODS"
+		_:
+			return "OTHER"
+
+
 func _load_expansion_unlock_catalog() -> void:
 	_expansion_unlocks.clear()
+	_expansion_by_id.clear()
 	var dir: DirAccess = DirAccess.open(EXPANSION_UNLOCK_DIR)
 	if dir == null:
 		push_warning("MetaMenu: expansion unlock directory missing at %s" % EXPANSION_UNLOCK_DIR)
@@ -281,7 +381,9 @@ func _load_expansion_unlock_catalog() -> void:
 		var path: String = "%s/%s" % [EXPANSION_UNLOCK_DIR, file_name]
 		var loaded: Resource = load(path)
 		if loaded is ExpansionUnlockResource:
-			_expansion_unlocks.append(loaded as ExpansionUnlockResource)
+			var unlock_res: ExpansionUnlockResource = loaded as ExpansionUnlockResource
+			_expansion_unlocks.append(unlock_res)
+			_expansion_by_id[unlock_res.id] = unlock_res
 		file_name = dir.get_next()
 	dir.list_dir_end()
 

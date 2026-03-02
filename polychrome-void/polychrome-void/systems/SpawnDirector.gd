@@ -242,9 +242,22 @@ func apply_expansion_profile(profile: Dictionary) -> void:
 	_spawn_interval_scale = maxf(0.1, float(profile.get("spawn_interval_scale", 1.0)))
 	_enemy_count_add = int(profile.get("enemy_count_add", 0))
 	_intelligence_tier = maxi(0, int(profile.get("intelligence_tier", 0)))
-	_active_elite_archetypes = profile.get("elite_archetypes", [])
-	_extra_enemy_paths = profile.get("enemy_resource_paths", [])
-	_extra_boss_paths = profile.get("boss_resource_paths", [])
+
+	_active_elite_archetypes.clear()
+	var elite_raw: Array = profile.get("elite_archetypes", [])
+	for value: Variant in elite_raw:
+		_active_elite_archetypes.append(StringName(str(value)))
+
+	_extra_enemy_paths.clear()
+	var enemy_paths_raw: Array = profile.get("enemy_resource_paths", [])
+	for value: Variant in enemy_paths_raw:
+		_extra_enemy_paths.append(str(value))
+
+	_extra_boss_paths.clear()
+	var boss_paths_raw: Array = profile.get("boss_resource_paths", [])
+	for value: Variant in boss_paths_raw:
+		_extra_boss_paths.append(str(value))
+
 	_rebuild_runtime_rosters()
 
 
