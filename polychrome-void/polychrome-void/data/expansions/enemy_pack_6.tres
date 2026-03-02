@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"enemy_pack_6"
+display_name = "ENEMY PACK VI"
+description = "Adds sentry and kiting apex units."
+category = 1
+cost = 170
+required_unlock_ids = [&"enemy_pack_5"]
+enemy_resource_paths = ["res://data/enemies/apex_sentry_01.tres", "res://data/enemies/apex_kiting_01.tres"]
+enemy_count_add = 2
+enemy_hp_multiplier = 1.08
+spawn_interval_scale = 0.97

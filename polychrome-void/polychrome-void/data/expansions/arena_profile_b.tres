@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"arena_profile_b"
+display_name = "ARENA PROFILE B"
+description = "Expands arena bounds to medium size."
+category = 5
+cost = 100
+required_unlock_ids = []
+mutually_exclusive_group = &"arena_profile"
+arena_min = Vector2(20, 20)
+arena_max = Vector2(1260, 700)
+spawn_interval_scale = 0.98

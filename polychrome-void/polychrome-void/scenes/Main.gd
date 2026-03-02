@@ -6,6 +6,7 @@ extends Node2D
 
 const RUN_COMPLETE_ARENA: int = 10
 const RUN_MENU_SCENE := preload("res://ui/RunMenuOverlay.gd")
+const EXPANSION_UNLOCK_DIR: String = "res://data/expansions"
 
 # ── Child node references (populated in _ready via $NodePath) ──────────────
 @onready var _bullet_manager:   BulletManager   = $BulletManager
@@ -27,6 +28,8 @@ var _score: int = 0
 var _run_active: bool = false
 var _pause_active: bool = false
 var _run_menu: RunMenuOverlay = null
+var _arena_min_runtime: Vector2 = ARENA_MIN
+var _arena_max_runtime: Vector2 = ARENA_MAX
 
 
 func _ready() -> void:
@@ -36,13 +39,14 @@ func _ready() -> void:
 
 	# Wire systems.
 	_collision_system.initialise(_bullet_manager, _player, _modifier_component)
+	_collision_system.set_enemy_damage_scale(1.0)
 	_player.initialise(_bullet_manager, _collision_system, _modifier_component)
-	_player.arena_min = ARENA_MIN
-	_player.arena_max = ARENA_MAX
+	_player.arena_min = _arena_min_runtime
+	_player.arena_max = _arena_max_runtime
 
 	_spawn_director.initialise(_player, _bullet_manager, _collision_system, self)
-	_spawn_director.arena_min = ARENA_MIN
-	_spawn_director.arena_max = ARENA_MAX
+	_spawn_director.arena_min = _arena_min_runtime
+	_spawn_director.arena_max = _arena_max_runtime
 
 	_hud.set_player(_player)
 	_upgrade_picker.initialise(_upgrade_pool, _modifier_component)
@@ -83,6 +87,8 @@ func _start_run() -> void:
 	_pause_active = false
 	_run_menu.hide_all()
 	_meta_menu.visible = false
+	var expansion_profile: Dictionary = _build_expansion_profile_from_active_unlocks()
+	_apply_expansion_profile(expansion_profile)
 	_modifier_component.reset()
 	_player.stats = Player.PlayerStats.new()
 	_apply_loadout_to_player()
@@ -97,6 +103,88 @@ func _start_run() -> void:
 	AudioManager.start_gameplay_music()
 	_set_run_systems_active(true)
 	_spawn_director.start_run()
+
+
+func _apply_expansion_profile(profile: Dictionary) -> void:
+	_arena_min_runtime = profile.get("arena_min", ARENA_MIN)
+	_arena_max_runtime = profile.get("arena_max", ARENA_MAX)
+
+	_player.arena_min = _arena_min_runtime
+	_player.arena_max = _arena_max_runtime
+	_spawn_director.arena_min = _arena_min_runtime
+	_spawn_director.arena_max = _arena_max_runtime
+	_spawn_director.apply_expansion_profile(profile)
+
+	var enemy_damage_mult: float = float(profile.get("enemy_damage_multiplier", 1.0))
+	var boss_damage_mult: float = float(profile.get("boss_damage_multiplier", 1.0))
+	_collision_system.set_enemy_damage_scale(maxf(enemy_damage_mult, boss_damage_mult))
+
+
+func _build_expansion_profile_from_active_unlocks() -> Dictionary:
+	var profile: Dictionary = {
+		"enemy_resource_paths": [],
+		"boss_resource_paths": [],
+		"enemy_hp_multiplier": 1.0,
+		"boss_hp_multiplier": 1.0,
+		"enemy_damage_multiplier": 1.0,
+		"boss_damage_multiplier": 1.0,
+		"enemy_count_add": 0,
+		"spawn_interval_scale": 1.0,
+		"intelligence_tier": 0,
+		"elite_archetypes": [],
+		"arena_min": ARENA_MIN,
+		"arena_max": ARENA_MAX,
+	}
+
+	var active_ids: Array[StringName] = SaveService.get_active_expansion_unlocks()
+	if active_ids.is_empty():
+		return profile
+
+	var catalog_by_id: Dictionary = {}
+	var dir: DirAccess = DirAccess.open(EXPANSION_UNLOCK_DIR)
+	if dir == null:
+		return profile
+
+	dir.list_dir_begin()
+	var file_name: String = dir.get_next()
+	while file_name != "":
+		if not dir.current_is_dir() and file_name.ends_with(".tres"):
+			var unlock_path: String = "%s/%s" % [EXPANSION_UNLOCK_DIR, file_name]
+			var loaded: Resource = load(unlock_path)
+			if loaded is ExpansionUnlockResource:
+				var unlock_res: ExpansionUnlockResource = loaded as ExpansionUnlockResource
+				catalog_by_id[unlock_res.id] = unlock_res
+		file_name = dir.get_next()
+	dir.list_dir_end()
+
+	for unlock_id: StringName in active_ids:
+		if not catalog_by_id.has(unlock_id):
+			continue
+		var expansion: ExpansionUnlockResource = catalog_by_id[unlock_id]
+		for enemy_path: String in expansion.enemy_resource_paths:
+			if not profile["enemy_resource_paths"].has(enemy_path):
+				profile["enemy_resource_paths"].append(enemy_path)
+		for boss_path: String in expansion.boss_resource_paths:
+			if not profile["boss_resource_paths"].has(boss_path):
+				profile["boss_resource_paths"].append(boss_path)
+
+		profile["enemy_hp_multiplier"] = float(profile["enemy_hp_multiplier"]) * expansion.enemy_hp_multiplier
+		profile["boss_hp_multiplier"] = float(profile["boss_hp_multiplier"]) * expansion.boss_hp_multiplier
+		profile["enemy_damage_multiplier"] = float(profile["enemy_damage_multiplier"]) * expansion.enemy_damage_multiplier
+		profile["boss_damage_multiplier"] = float(profile["boss_damage_multiplier"]) * expansion.boss_damage_multiplier
+		profile["enemy_count_add"] = int(profile["enemy_count_add"]) + expansion.enemy_count_add
+		profile["spawn_interval_scale"] = float(profile["spawn_interval_scale"]) * expansion.spawn_interval_scale
+		profile["intelligence_tier"] = maxi(int(profile["intelligence_tier"]), expansion.intelligence_tier)
+
+		if expansion.elite_archetype != StringName():
+			if not profile["elite_archetypes"].has(expansion.elite_archetype):
+				profile["elite_archetypes"].append(expansion.elite_archetype)
+
+		if expansion.category == ExpansionUnlockResource.Category.ARENA_PROFILE:
+			profile["arena_min"] = expansion.arena_min
+			profile["arena_max"] = expansion.arena_max
+
+	return profile
 
 
 func _set_run_systems_active(active: bool) -> void:

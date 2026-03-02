@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"damage_tier_2"
+display_name = "DAMAGE TIER II"
+description = "Further increases enemy and boss damage output."
+category = 3
+cost = 100
+required_unlock_ids = [&"damage_tier_1"]
+mutually_exclusive_group = &"damage_tier"
+enemy_damage_multiplier = 1.16
+boss_damage_multiplier = 1.16

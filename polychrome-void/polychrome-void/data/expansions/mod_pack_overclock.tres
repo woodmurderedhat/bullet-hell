@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"mod_pack_overclock"
+display_name = "MOD PACK: OVERCLOCK"
+description = "Endgame global overclock for enemy and boss pressure."
+category = 6
+cost = 300
+required_unlock_ids = [&"boss_tier_3_a", &"damage_tier_4", &"intel_tier_4"]
+enemy_hp_multiplier = 1.08
+boss_hp_multiplier = 1.08
+enemy_damage_multiplier = 1.1
+boss_damage_multiplier = 1.1
+enemy_count_add = 2
+spawn_interval_scale = 0.86
+intelligence_tier = 5

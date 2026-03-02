@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"arena_profile_d"
+display_name = "ARENA PROFILE D"
+description = "Maximum arena expansion profile for advanced runs."
+category = 5
+cost = 260
+required_unlock_ids = [&"arena_profile_c"]
+mutually_exclusive_group = &"arena_profile"
+arena_min = Vector2(-40, -30)
+arena_max = Vector2(1320, 750)
+spawn_interval_scale = 0.94

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"arena_profile_c"
+display_name = "ARENA PROFILE C"
+description = "Large arena profile with wider wrap distance."
+category = 5
+cost = 170
+required_unlock_ids = [&"arena_profile_b"]
+mutually_exclusive_group = &"arena_profile"
+arena_min = Vector2(0, 0)
+arena_max = Vector2(1280, 720)
+spawn_interval_scale = 0.96

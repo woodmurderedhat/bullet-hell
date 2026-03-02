@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"boss_tier_1_b"
+display_name = "BOSS TIER I: ORBIT QUEEN"
+description = "Unlocks an additional tier I boss encounter."
+category = 0
+cost = 120
+required_unlock_ids = [&"boss_tier_1_a"]
+mutually_exclusive_group = &""
+enemy_resource_paths = []
+boss_resource_paths = ["res://data/bosses/boss_05.tres"]

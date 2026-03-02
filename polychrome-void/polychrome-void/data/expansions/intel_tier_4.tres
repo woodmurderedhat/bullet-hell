@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"intel_tier_4"
+display_name = "INTELLIGENCE TIER IV"
+description = "Major AI escalation with stronger tactical adaptation."
+category = 4
+cost = 235
+required_unlock_ids = [&"intel_tier_3"]
+mutually_exclusive_group = &"intel_tier"
+intelligence_tier = 4

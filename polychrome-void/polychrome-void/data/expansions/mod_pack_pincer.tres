@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"mod_pack_pincer"
+display_name = "MOD PACK: PINCER"
+description = "Adds stronger AI and elite pressure from multiple vectors."
+category = 6
+cost = 220
+required_unlock_ids = [&"elite_flanker", &"elite_interceptor", &"intel_tier_3"]
+intelligence_tier = 4
+enemy_count_add = 1
+spawn_interval_scale = 0.9

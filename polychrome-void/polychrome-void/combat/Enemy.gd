@@ -15,6 +15,11 @@ var _resource: EnemyResource = null
 var _current_hp: float = 0.0
 var _max_hp: float = 0.0
 var _player_ref: Node2D = null
+var _intelligence_tier: int = 0
+var _elite_archetype: StringName = &""
+var _base_speed_multiplier: float = 1.0
+var _arena_min: Vector2 = Vector2(40.0, 40.0)
+var _arena_max: Vector2 = Vector2(1240.0, 680.0)
 
 var _dead: bool = false
 var _movement_sign: float = 1.0
@@ -22,23 +27,39 @@ var _dash_timer: float = 0.0
 var _is_dashing: bool = false
 var _lifetime: float = 0.0
 var _wave_seed: float = 0.0
+var _last_player_pos: Vector2 = Vector2.ZERO
 
 const HALF_SIZE: float = 14.0
 
 
 ## Initialise with a resource and scaled HP.  Call before adding to the scene tree.
-func setup(res: EnemyResource, scaled_hp: float, id: int, player: Node2D) -> void:
+func setup(
+	res: EnemyResource,
+	scaled_hp: float,
+	id: int,
+	player: Node2D,
+	arena_min: Vector2,
+	arena_max: Vector2,
+	intelligence_tier: int = 0,
+	elite_archetype: StringName = &""
+) -> void:
 	_resource = res
 	_max_hp = scaled_hp
 	_current_hp = scaled_hp
 	enemy_id = id
 	collision_radius = res.collision_radius
 	_player_ref = player
+	_intelligence_tier = maxi(0, intelligence_tier)
+	_elite_archetype = elite_archetype
+	_base_speed_multiplier = _elite_speed_multiplier(_elite_archetype)
+	_arena_min = arena_min
+	_arena_max = arena_max
 	_movement_sign = 1.0 if (id % 2) == 0 else -1.0
 	_dash_timer = 0.0
 	_is_dashing = false
 	_lifetime = 0.0
 	_wave_seed = float(id) * 0.371
+	_last_player_pos = _player_ref.position if _player_ref != null else Vector2.ZERO
 
 
 func _ready() -> void:
@@ -49,41 +70,89 @@ func _process(delta: float) -> void:
 	if _dead or _player_ref == null:
 		return
 	_lifetime += delta
-	position += _compute_velocity(delta) * delta
+	var player_pos: Vector2 = _player_ref.position
+	var predicted_player_pos: Vector2 = player_pos
+	if _intelligence_tier >= 2:
+		var player_velocity: Vector2 = (player_pos - _last_player_pos) / maxf(0.001, delta)
+		var prediction_horizon: float = minf(0.45, 0.10 + 0.05 * float(_intelligence_tier - 1))
+		predicted_player_pos += player_velocity * prediction_horizon
+	_last_player_pos = player_pos
+
+	position += _compute_velocity(delta, predicted_player_pos) * delta
+	_wrap_position_to_arena()
 	queue_redraw()
 
 
-func _compute_velocity(delta: float) -> Vector2:
+func _wrap_position_to_arena() -> void:
+	if position.x < _arena_min.x:
+		position.x = _arena_max.x
+	elif position.x > _arena_max.x:
+		position.x = _arena_min.x
+
+	if position.y < _arena_min.y:
+		position.y = _arena_max.y
+	elif position.y > _arena_max.y:
+		position.y = _arena_min.y
+
+
+func _compute_velocity(delta: float, target_position: Vector2) -> Vector2:
 	if _resource == null or _player_ref == null:
 		return Vector2.ZERO
 
-	var to_player: Vector2 = _player_ref.position - position
+	var to_player: Vector2 = target_position - position
 	var dist: float = to_player.length()
 	if dist <= 0.0001:
 		return Vector2.ZERO
 
 	var to_dir: Vector2 = to_player / dist
 	var tangent: Vector2 = Vector2(-to_dir.y, to_dir.x)
+	var velocity: Vector2 = Vector2.ZERO
 
 	match _resource.movement_type:
 		EnemyResource.MovementType.CHASER:
-			return to_dir * _resource.speed
+			velocity = to_dir * _resource.speed
 		EnemyResource.MovementType.STRAFING:
-			return _velocity_strafing(to_dir, tangent)
+			velocity = _velocity_strafing(to_dir, tangent)
 		EnemyResource.MovementType.ORBITING:
-			return _velocity_orbiting(to_dir, tangent, dist)
+			velocity = _velocity_orbiting(to_dir, tangent, dist)
 		EnemyResource.MovementType.DASHING:
-			return _velocity_dashing(to_dir, delta)
+			velocity = _velocity_dashing(to_dir, delta)
 		EnemyResource.MovementType.WAVY:
-			return _velocity_wavy(to_dir, tangent)
+			velocity = _velocity_wavy(to_dir, tangent)
 		EnemyResource.MovementType.KITING:
-			return _velocity_kiting(to_dir, tangent, dist)
+			velocity = _velocity_kiting(to_dir, tangent, dist)
 		EnemyResource.MovementType.ZIGZAG:
-			return _velocity_zigzag(to_dir, tangent)
+			velocity = _velocity_zigzag(to_dir, tangent)
 		EnemyResource.MovementType.SENTRY:
-			return Vector2.ZERO
+			velocity = Vector2.ZERO
 		_:
-			return to_dir * _resource.speed
+			velocity = to_dir * _resource.speed
+
+	if _elite_archetype == &"zoner" and dist < maxf(120.0, _resource.preferred_range * 0.8):
+		velocity -= to_dir * (_resource.speed * 0.55)
+	elif _elite_archetype == &"hunter" and dist > maxf(60.0, _resource.preferred_range * 0.45):
+		velocity += to_dir * (_resource.speed * 0.35)
+
+	var intelligence_speed_bonus: float = 1.0 + float(_intelligence_tier) * 0.035
+	return velocity * _base_speed_multiplier * intelligence_speed_bonus
+
+
+func _elite_speed_multiplier(archetype: StringName) -> float:
+	match archetype:
+		&"flanker":
+			return 1.10
+		&"suppressor":
+			return 0.94
+		&"interceptor":
+			return 1.20
+		&"zoner":
+			return 0.92
+		&"splitter":
+			return 1.05
+		&"hunter":
+			return 1.15
+		_:
+			return 1.0
 
 
 func _velocity_strafing(to_dir: Vector2, tangent: Vector2) -> Vector2:

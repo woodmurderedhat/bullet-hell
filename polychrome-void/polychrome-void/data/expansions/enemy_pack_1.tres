@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"enemy_pack_1"
+display_name = "ENEMY PACK I"
+description = "Expands baseline enemy roster with flanker and orbit variants."
+category = 1
+cost = 40
+required_unlock_ids = []
+enemy_resource_paths = ["res://data/enemies/elite_flanker_01.tres", "res://data/enemies/apex_orbit_01.tres"]
+enemy_count_add = 1

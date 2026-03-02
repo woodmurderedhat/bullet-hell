@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyResource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://data/EnemyResource.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://data/patterns/arc_elite_01.tres" id="2_pattern"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = &"elite_interceptor_01"
+base_hp = 78.0
+speed = 148.0
+collision_radius = 16.0
+pattern = ExtResource("2_pattern")
+movement_type = 3
+lateral_weight = 0.56
+preferred_range = 138.0
+dash_interval = 1.08
+dash_duration = 0.3
+dash_speed_multiplier = 2.8
+wave_frequency = 2.1
+wave_amplitude = 78.0
+color = Color(0.42, 0.96, 0.98, 1)
+score_value = 30

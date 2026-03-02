@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyResource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://data/EnemyResource.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://data/patterns/spiral_elite_01.tres" id="2_pattern"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = &"elite_flanker_01"
+base_hp = 72.0
+speed = 112.0
+collision_radius = 17.0
+pattern = ExtResource("2_pattern")
+movement_type = 1
+lateral_weight = 0.86
+preferred_range = 176.0
+dash_interval = 1.45
+dash_duration = 0.24
+dash_speed_multiplier = 2.3
+wave_frequency = 2.3
+wave_amplitude = 82.0
+color = Color(0.98, 0.48, 0.58, 1)
+score_value = 22

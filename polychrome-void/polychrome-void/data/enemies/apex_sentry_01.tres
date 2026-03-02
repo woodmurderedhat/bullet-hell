@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyResource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://data/EnemyResource.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://data/patterns/radial_elite_03.tres" id="2_pattern"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = &"apex_sentry_01"
+base_hp = 160.0
+speed = 74.0
+collision_radius = 22.0
+pattern = ExtResource("2_pattern")
+movement_type = 7
+lateral_weight = 0.2
+preferred_range = 260.0
+dash_interval = 1.8
+dash_duration = 0.24
+dash_speed_multiplier = 2.0
+wave_frequency = 1.6
+wave_amplitude = 40.0
+color = Color(1, 0.8, 0.42, 1)
+score_value = 38

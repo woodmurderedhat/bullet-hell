@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"damage_tier_5"
+display_name = "DAMAGE TIER V"
+description = "Maximum damage scaling tier for endgame expansion mode."
+category = 3
+cost = 280
+required_unlock_ids = [&"damage_tier_4"]
+mutually_exclusive_group = &"damage_tier"
+enemy_damage_multiplier = 1.40
+boss_damage_multiplier = 1.40

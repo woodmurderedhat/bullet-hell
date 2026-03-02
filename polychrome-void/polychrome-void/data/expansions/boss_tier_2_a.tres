@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"boss_tier_2_a"
+display_name = "BOSS TIER II: FRACTAL TYRANT"
+description = "Adds an advanced boss with denser projectile pressure."
+category = 0
+cost = 180
+required_unlock_ids = [&"boss_tier_1_b"]
+mutually_exclusive_group = &""
+enemy_resource_paths = []
+boss_resource_paths = ["res://data/bosses/boss_06.tres"]

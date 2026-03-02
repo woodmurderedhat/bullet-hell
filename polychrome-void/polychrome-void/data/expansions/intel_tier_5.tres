@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"intel_tier_5"
+display_name = "INTELLIGENCE TIER V"
+description = "Maximum AI pressure tier for expert expansion runs."
+category = 4
+cost = 310
+required_unlock_ids = [&"intel_tier_4"]
+mutually_exclusive_group = &"intel_tier"
+intelligence_tier = 5

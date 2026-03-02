@@ -196,6 +196,7 @@ This section records the current implementation pass status. The original gap ta
 - Added new enemy movement types, new pattern resource types, and two additional boss definitions.
 - Added QA tool scenes/scripts for wave integration, automated play, save verification, and visual regression.
 - Added platform abstraction service with local fallback behavior for achievements and leaderboard submission.
+- Added expansion-first meta progression: data-driven expansion unlock resources, per-run expansion toggles, enemy/boss roster expansion, elite archetypes, damage/intelligence tiers, arena profiles, and challenge mod packs.
 
 ---
 

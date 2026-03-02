@@ -1,9 +1,10 @@
-## MetaMenuScene — displayed between runs; shows meta-currency and unlocks.
-## Unlocks feed into UpgradePool on the next run.
+## MetaMenuScene — displayed between runs; shows meta-currency and expansion unlocks.
+## Expansion unlocks are purchased permanently and toggled per-run.
 class_name MetaMenu
 extends CanvasLayer
 
 const UNLOCK_COST: int = 50  ## Currency cost per unlock.
+const EXPANSION_UNLOCK_DIR: String = "res://data/expansions"
 const COLOR_BG: Color = Color(0.03, 0.03, 0.05)
 const COLOR_TITLE: Color = Color(0.95, 0.45, 1.0)
 const COLOR_INFO: Color = Color(0.62, 0.95, 0.90)
@@ -21,16 +22,8 @@ var _slot_label: Label
 var _mode_label: Label
 var _loadout_label: Label
 var _daily_label: Label
-
-## Hardcoded list of meta-unlockable upgrade IDs + their display names.
-## When unlocked these IDs are passed to SaveService which UpgradePool reads.
-const UNLOCKABLE_UPGRADES: Array[Dictionary] = [
-	{"id": "fractal_chain_01",  "name": "FRACTAL CHAIN",  "cost": 50},
-	{"id": "chaos_gamble_01",   "name": "CHAOS GAMBLE",   "cost": 75},
-	{"id": "shield_reflect_01", "name": "SHIELD REFLECT", "cost": 60},
-	{"id": "entropy_wild_01",   "name": "ENTROPY WILD",   "cost": 80},
-	{"id": "crit_multi_01",     "name": "CRIT MULTIPLIER","cost": 65},
-]
+var _expansion_unlocks: Array[ExpansionUnlockResource] = []
+var _active_expansion_ids: Array[StringName] = []
 
 signal play_pressed()
 signal tutorial_pressed()
@@ -38,6 +31,7 @@ signal tutorial_pressed()
 
 func _ready() -> void:
 	layer = 30
+	_load_expansion_unlock_catalog()
 	_build_ui()
 	EventBus.run_ended.connect(_on_run_ended)
 
@@ -119,18 +113,16 @@ func _build_ui() -> void:
 	_daily_label.add_theme_color_override("font_color", COLOR_ALT_INFO)
 	add_child(_daily_label)
 
-	# Unlock grid.
+	# Expansion unlock grid.
 	var grid_x: float = 340.0
 	var grid_y: float = 210.0
-	for i: int in range(UNLOCKABLE_UPGRADES.size()):
-		var data: Dictionary = UNLOCKABLE_UPGRADES[i]
+	for i: int in range(_expansion_unlocks.size()):
 		var btn: Button = Button.new()
 		btn.position = Vector2(grid_x, grid_y + i * 60.0)
 		btn.size = Vector2(600.0, 48.0)
-		var unlocked: bool = SaveService.is_unlocked(StringName(data["id"]))
-		btn.text = _unlock_button_text(data, unlocked)
-		btn.disabled = unlocked
-		_style_button(btn, COLOR_BUTTON_DONE if unlocked else COLOR_BUTTON_UNLOCK)
+		btn.text = "..."
+		btn.disabled = false
+		_style_button(btn, COLOR_BUTTON_UNLOCK)
 		var cap_i: int = i
 		btn.pressed.connect(func() -> void: _on_unlock_pressed(cap_i))
 		add_child(btn)
@@ -171,6 +163,7 @@ func refresh_menu() -> void:
 	_mode_label.text = "MODE %s" % ("ENDLESS" if bool(SaveService.get_save("endless_mode", false)) else "STANDARD")
 	_loadout_label.text = "LOADOUT %s" % _loadout_name(int(SaveService.get_save("selected_loadout", 0)))
 	_daily_label.text = "DAILY %s" % String(SaveService.get_save("daily_modifier_id", "pending"))
+	_active_expansion_ids = SaveService.get_active_expansion_unlocks()
 
 	var scores: Array[int] = SaveService.get_leaderboard_scores()
 	var lines: Array[String] = ["TOP SCORES"]
@@ -181,25 +174,45 @@ func refresh_menu() -> void:
 			lines.append("%d. %d" % [i + 1, scores[i]])
 	_leaderboard_label.text = "\n".join(lines)
 
-	# Refresh button disabled states.
-	for i: int in range(UNLOCKABLE_UPGRADES.size()):
+	# Refresh expansion unlock button states.
+	for i: int in range(_expansion_unlocks.size()):
 		if i < _unlock_buttons.size():
-			var unlocked: bool = SaveService.is_unlocked(
-				StringName(UNLOCKABLE_UPGRADES[i]["id"])
-			)
-			_unlock_buttons[i].text = _unlock_button_text(UNLOCKABLE_UPGRADES[i], unlocked)
-			_unlock_buttons[i].disabled = unlocked
-			_style_button(_unlock_buttons[i], COLOR_BUTTON_DONE if unlocked else COLOR_BUTTON_UNLOCK)
+			var unlock_res: ExpansionUnlockResource = _expansion_unlocks[i]
+			var unlocked: bool = SaveService.is_expansion_unlocked(unlock_res.id)
+			var active: bool = _active_expansion_ids.has(unlock_res.id)
+			_unlock_buttons[i].text = _unlock_button_text(unlock_res, unlocked, active)
+			_unlock_buttons[i].disabled = false
+			if active:
+				_style_button(_unlock_buttons[i], COLOR_BUTTON_DONE)
+			elif unlocked:
+				_style_button(_unlock_buttons[i], COLOR_BUTTON_SECONDARY)
+			else:
+				_style_button(_unlock_buttons[i], COLOR_BUTTON_UNLOCK)
 
 
 func _on_unlock_pressed(index: int) -> void:
-	var data: Dictionary = UNLOCKABLE_UPGRADES[index]
-	var cost: int = int(data["cost"])
-	var cur: int = int(SaveService.get_save("meta_currency", 0))
-	if cur < cost:
+	if index < 0 or index >= _expansion_unlocks.size():
 		return
-	SaveService.add_currency(-cost)
-	SaveService.add_unlock(StringName(data["id"]))
+
+	var unlock_res: ExpansionUnlockResource = _expansion_unlocks[index]
+	var purchased: bool = SaveService.is_expansion_unlocked(unlock_res.id)
+	if not purchased:
+		if not _can_purchase_unlock(unlock_res):
+			return
+		var cur: int = int(SaveService.get_save("meta_currency", 0))
+		if cur < unlock_res.cost:
+			return
+		SaveService.add_currency(-unlock_res.cost)
+		SaveService.add_expansion_unlock(unlock_res.id)
+		if unlock_res.category == ExpansionUnlockResource.Category.DAMAGE_TIER:
+			_toggle_active_unlock(unlock_res)
+		if unlock_res.category == ExpansionUnlockResource.Category.INTELLIGENCE_TIER:
+			_toggle_active_unlock(unlock_res)
+		if unlock_res.category == ExpansionUnlockResource.Category.ARENA_PROFILE:
+			_toggle_active_unlock(unlock_res)
+	else:
+		_toggle_active_unlock(unlock_res)
+
 	refresh_menu()
 
 
@@ -240,10 +253,75 @@ func _loadout_name(loadout_idx: int) -> String:
 			return "BALANCED"
 
 
-func _unlock_button_text(data: Dictionary, unlocked: bool) -> String:
-	if unlocked:
-		return "✓ %s" % String(data["name"])
-	return "%s  •  %d" % [String(data["name"]), int(data["cost"])]
+func _unlock_button_text(unlock_res: ExpansionUnlockResource, unlocked: bool, active: bool) -> String:
+	if not unlocked:
+		return "BUY  %s  •  %d" % [unlock_res.display_name, unlock_res.cost]
+	if active:
+		return "ACTIVE  ✓  %s" % unlock_res.display_name
+	return "ENABLE  %s" % unlock_res.display_name
+
+
+func _load_expansion_unlock_catalog() -> void:
+	_expansion_unlocks.clear()
+	var dir: DirAccess = DirAccess.open(EXPANSION_UNLOCK_DIR)
+	if dir == null:
+		push_warning("MetaMenu: expansion unlock directory missing at %s" % EXPANSION_UNLOCK_DIR)
+		return
+
+	dir.list_dir_begin()
+	var file_name: String = dir.get_next()
+	while file_name != "":
+		if dir.current_is_dir():
+			file_name = dir.get_next()
+			continue
+		if not file_name.ends_with(".tres"):
+			file_name = dir.get_next()
+			continue
+
+		var path: String = "%s/%s" % [EXPANSION_UNLOCK_DIR, file_name]
+		var loaded: Resource = load(path)
+		if loaded is ExpansionUnlockResource:
+			_expansion_unlocks.append(loaded as ExpansionUnlockResource)
+		file_name = dir.get_next()
+	dir.list_dir_end()
+
+	_expansion_unlocks.sort_custom(func(a: ExpansionUnlockResource, b: ExpansionUnlockResource) -> bool:
+		if a.cost == b.cost:
+			return String(a.display_name) < String(b.display_name)
+		return a.cost < b.cost
+	)
+
+
+func _can_purchase_unlock(unlock_res: ExpansionUnlockResource) -> bool:
+	for required: StringName in unlock_res.required_unlock_ids:
+		if not SaveService.is_expansion_unlocked(required):
+			return false
+	return true
+
+
+func _toggle_active_unlock(unlock_res: ExpansionUnlockResource) -> void:
+	if not SaveService.is_expansion_unlocked(unlock_res.id):
+		return
+
+	var active: Array[StringName] = SaveService.get_active_expansion_unlocks()
+	if active.has(unlock_res.id):
+		active.erase(unlock_res.id)
+		SaveService.set_active_expansion_unlocks(active)
+		return
+
+	for required: StringName in unlock_res.required_unlock_ids:
+		if not active.has(required):
+			return
+
+	if unlock_res.mutually_exclusive_group != StringName():
+		for entry: ExpansionUnlockResource in _expansion_unlocks:
+			if entry.id == unlock_res.id:
+				continue
+			if entry.mutually_exclusive_group == unlock_res.mutually_exclusive_group:
+				active.erase(entry.id)
+
+	active.append(unlock_res.id)
+	SaveService.set_active_expansion_unlocks(active)
 
 
 func _style_button(button: Button, base_color: Color) -> void:

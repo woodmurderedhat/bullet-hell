@@ -11,6 +11,8 @@ const CLOUD_PATH_TEMPLATE: String = "user://cloud_slot_%d.json"
 const DEFAULT_SAVE: Dictionary = {
 	"meta_currency": 0,
 	"meta_unlocks": [],
+	"expansion_unlocks": [],
+	"active_expansion_unlocks": [],
 	"high_score": 0,
 	"leaderboard_scores": [],
 	"runs_completed": 0,
@@ -112,6 +114,49 @@ func add_unlock(unlock_id: StringName) -> void:
 func is_unlocked(unlock_id: StringName) -> bool:
 	var unlocks: Array = _data.get("meta_unlocks", [])
 	return unlocks.has(str(unlock_id))
+
+
+func add_expansion_unlock(unlock_id: StringName) -> void:
+	var unlocks: Array = _data.get("expansion_unlocks", [])
+	if not unlocks.has(str(unlock_id)):
+		unlocks.append(str(unlock_id))
+		_data["expansion_unlocks"] = unlocks
+		write_save()
+
+
+func is_expansion_unlocked(unlock_id: StringName) -> bool:
+	var unlocks: Array = _data.get("expansion_unlocks", [])
+	return unlocks.has(str(unlock_id))
+
+
+func get_purchased_expansion_unlocks() -> Array[StringName]:
+	var unlocks: Array = _data.get("expansion_unlocks", [])
+	var output: Array[StringName] = []
+	for value: Variant in unlocks:
+		output.append(StringName(str(value)))
+	return output
+
+
+func get_active_expansion_unlocks() -> Array[StringName]:
+	var active: Array = _data.get("active_expansion_unlocks", [])
+	var output: Array[StringName] = []
+	for value: Variant in active:
+		output.append(StringName(str(value)))
+	return output
+
+
+func set_active_expansion_unlocks(unlock_ids: Array[StringName]) -> void:
+	var purchased: Array[StringName] = get_purchased_expansion_unlocks()
+	var unique_output: Array[String] = []
+	for unlock_id: StringName in unlock_ids:
+		if not purchased.has(unlock_id):
+			continue
+		var key: String = str(unlock_id)
+		if unique_output.has(key):
+			continue
+		unique_output.append(key)
+	_data["active_expansion_unlocks"] = unique_output
+	write_save()
 
 
 func set_active_slot(slot: int) -> void:

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"mod_pack_swarm"
+display_name = "MOD PACK: SWARM"
+description = "Focuses on larger swarms and slightly faster pacing."
+category = 6
+cost = 180
+required_unlock_ids = [&"enemy_pack_6", &"intel_tier_2"]
+enemy_count_add = 2
+spawn_interval_scale = 0.88
+enemy_hp_multiplier = 1.05

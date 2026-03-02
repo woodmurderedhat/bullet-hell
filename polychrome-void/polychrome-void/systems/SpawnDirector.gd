@@ -53,7 +53,19 @@ var _spawned_in_wave: int = 0
 var _spawn_timer: float = 0.0
 var _wave_active: bool = false
 var _next_enemy_id: int = 0
+var _base_enemy_roster: Array[EnemyResource] = []
 var _enemy_roster: Array[EnemyResource] = []
+var _base_boss_roster: Array[BossResource] = []
+var _boss_roster: Array[BossResource] = []
+
+var _enemy_hp_multiplier: float = 1.0
+var _boss_hp_multiplier: float = 1.0
+var _spawn_interval_scale: float = 1.0
+var _enemy_count_add: int = 0
+var _intelligence_tier: int = 0
+var _active_elite_archetypes: Array[StringName] = []
+var _extra_enemy_paths: Array[String] = []
+var _extra_boss_paths: Array[String] = []
 
 
 ## Call from Main once all dependencies are available.
@@ -62,7 +74,7 @@ func initialise(player: Node2D, bm: BulletManager, cs: CollisionSystem, root: No
 	_bullet_manager = bm
 	_collision_system = cs
 	_scene_root = root
-	_enemy_roster = [
+	_base_enemy_roster = [
 		RES_BASIC_SQUARE,
 		RES_BURST_SQUARE,
 		RES_STRAFER_DIAMOND,
@@ -76,6 +88,9 @@ func initialise(player: Node2D, bm: BulletManager, cs: CollisionSystem, root: No
 		RES_ZIGZAG_DART,
 		RES_SENTRY_CORE,
 	]
+	_enemy_roster = _base_enemy_roster.duplicate()
+	_base_boss_roster = [RES_BOSS_01, RES_BOSS_02, RES_BOSS_03]
+	_boss_roster = _base_boss_roster.duplicate()
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.wave_complete.connect(_on_wave_complete)
 
@@ -123,8 +138,8 @@ func _build_wave_config() -> WaveConfig:
 		cfg.spawn_interval = 0.0
 	else:
 		# Scale enemy count and mix patterns as arenas progress.
-		cfg.enemy_count = 4 + arena_index * 2
-		cfg.spawn_interval = maxf(0.4, 1.2 - arena_index * 0.05)
+		cfg.enemy_count = maxi(2, 4 + arena_index * 2 + _enemy_count_add)
+		cfg.spawn_interval = maxf(0.25, (1.2 - arena_index * 0.05) * _spawn_interval_scale)
 		cfg.enemy_resource = _pick_enemy_for_arena()
 
 	return cfg
@@ -149,8 +164,18 @@ func _spawn_next_enemy() -> void:
 
 func _spawn_enemy(id: int, pos: Vector2, res: EnemyResource) -> void:
 	var enemy: Enemy = SCENE_ENEMY.instantiate() as Enemy
-	var scaled_hp: float = res.base_hp * (1.0 + arena_index * 0.12)
-	enemy.setup(res, scaled_hp, id, _player)
+	var scaled_hp: float = res.base_hp * (1.0 + arena_index * 0.12) * _enemy_hp_multiplier
+	var elite_archetype: StringName = _pick_elite_archetype_for_spawn()
+	enemy.setup(
+		res,
+		scaled_hp,
+		id,
+		_player,
+		arena_min,
+		arena_max,
+		_intelligence_tier,
+		elite_archetype
+	)
 	enemy.position = pos
 	_scene_root.add_child(enemy)
 	_collision_system.register_enemy(enemy)
@@ -158,14 +183,32 @@ func _spawn_enemy(id: int, pos: Vector2, res: EnemyResource) -> void:
 	# Attach pattern executor.
 	var pe: PatternExecutor = PatternExecutor.new()
 	enemy.add_child(pe)
-	pe.setup(res.pattern, _bullet_manager, enemy)
+	pe.setup(
+		res.pattern,
+		_bullet_manager,
+		enemy,
+		_enemy_fire_rate_scale(elite_archetype),
+		_enemy_bullet_speed_scale(elite_archetype)
+	)
 
 
 func _spawn_boss(id: int, pos: Vector2) -> void:
 	var boss: Boss = SCENE_BOSS.instantiate() as Boss
 	var res: BossResource = _current_config.boss_resource
-	var scaled_hp: float = res.base_hp * (1.0 + arena_index * 0.12)
-	boss.setup_boss(res, scaled_hp, id, _player, _bullet_manager)
+	var scaled_hp: float = res.base_hp * (1.0 + arena_index * 0.12) * _boss_hp_multiplier
+	boss.setup_boss(
+		res,
+		scaled_hp,
+		id,
+		_player,
+		_bullet_manager,
+		arena_min,
+		arena_max,
+		_intelligence_tier,
+		_boss_movement_scale(),
+		_boss_fire_rate_scale(),
+		_boss_bullet_speed_scale()
+	)
 	boss.position = pos
 	_scene_root.add_child(boss)
 	_collision_system.register_enemy(boss)
@@ -184,7 +227,7 @@ func _pick_enemy_for_arena() -> EnemyResource:
 
 
 func _pick_boss_for_arena(current_arena: int) -> BossResource:
-	var boss_cycle: Array[BossResource] = [RES_BOSS_01, RES_BOSS_02, RES_BOSS_03]
+	var boss_cycle: Array[BossResource] = _boss_roster
 	if boss_cycle.is_empty():
 		return RES_BOSS_01
 	var cycle_idx: int = int((current_arena / BOSS_ARENA_INTERVAL) - 1) % boss_cycle.size()
@@ -193,27 +236,97 @@ func _pick_boss_for_arena(current_arena: int) -> BossResource:
 	return boss_cycle[cycle_idx]
 
 
+func apply_expansion_profile(profile: Dictionary) -> void:
+	_enemy_hp_multiplier = maxf(0.1, float(profile.get("enemy_hp_multiplier", 1.0)))
+	_boss_hp_multiplier = maxf(0.1, float(profile.get("boss_hp_multiplier", 1.0)))
+	_spawn_interval_scale = maxf(0.1, float(profile.get("spawn_interval_scale", 1.0)))
+	_enemy_count_add = int(profile.get("enemy_count_add", 0))
+	_intelligence_tier = maxi(0, int(profile.get("intelligence_tier", 0)))
+	_active_elite_archetypes = profile.get("elite_archetypes", [])
+	_extra_enemy_paths = profile.get("enemy_resource_paths", [])
+	_extra_boss_paths = profile.get("boss_resource_paths", [])
+	_rebuild_runtime_rosters()
+
+
+func _rebuild_runtime_rosters() -> void:
+	_enemy_roster = _base_enemy_roster.duplicate()
+	for path: String in _extra_enemy_paths:
+		if not ResourceLoader.exists(path):
+			continue
+		var loaded_enemy: Resource = load(path)
+		if loaded_enemy is EnemyResource:
+			_enemy_roster.append(loaded_enemy as EnemyResource)
+
+	_boss_roster = _base_boss_roster.duplicate()
+	for path: String in _extra_boss_paths:
+		if not ResourceLoader.exists(path):
+			continue
+		var loaded_boss: Resource = load(path)
+		if loaded_boss is BossResource:
+			_boss_roster.append(loaded_boss as BossResource)
+
+
+func _pick_elite_archetype_for_spawn() -> StringName:
+	if _active_elite_archetypes.is_empty():
+		return &""
+	var chance: float = minf(0.70, 0.08 + float(_intelligence_tier) * 0.06 + float(arena_index) * 0.02)
+	if RandomService.next_float() > chance:
+		return &""
+	var idx: int = RandomService.next_int_range(0, _active_elite_archetypes.size() - 1)
+	return _active_elite_archetypes[idx]
+
+
+func _enemy_fire_rate_scale(elite_archetype: StringName) -> float:
+	var scale: float = 1.0 + float(_intelligence_tier) * 0.08
+	if elite_archetype == &"suppressor":
+		scale += 0.18
+	elif elite_archetype == &"hunter":
+		scale += 0.10
+	return maxf(0.2, scale)
+
+
+func _enemy_bullet_speed_scale(elite_archetype: StringName) -> float:
+	var scale: float = 1.0 + float(_intelligence_tier) * 0.05
+	if elite_archetype == &"interceptor":
+		scale += 0.20
+	elif elite_archetype == &"splitter":
+		scale += 0.08
+	return maxf(0.2, scale)
+
+
+func _boss_movement_scale() -> float:
+	return 1.0 + float(_intelligence_tier) * 0.05
+
+
+func _boss_fire_rate_scale() -> float:
+	return 1.0 + float(_intelligence_tier) * 0.11
+
+
+func _boss_bullet_speed_scale() -> float:
+	return 1.0 + float(_intelligence_tier) * 0.07
+
+
 func _random_edge_position() -> Vector2:
 	var edge: int = RandomService.next_int_range(0, 3)
 	match edge:
 		0:  # Top
 			return Vector2(
 				RandomService.next_int_range(int(arena_min.x), int(arena_max.x)),
-				arena_min.y - 20.0
+				arena_min.y
 			)
 		1:  # Bottom
 			return Vector2(
 				RandomService.next_int_range(int(arena_min.x), int(arena_max.x)),
-				arena_max.y + 20.0
+				arena_max.y
 			)
 		2:  # Left
 			return Vector2(
-				arena_min.x - 20.0,
+				arena_min.x,
 				RandomService.next_int_range(int(arena_min.y), int(arena_max.y))
 			)
 		_:  # Right
 			return Vector2(
-				arena_max.x + 20.0,
+				arena_max.x,
 				RandomService.next_int_range(int(arena_min.y), int(arena_max.y))
 			)
 

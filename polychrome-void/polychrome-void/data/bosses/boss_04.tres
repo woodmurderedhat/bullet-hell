@@ -1,0 +1,61 @@
+[gd_resource type="Resource" script_class="BossResource" load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://data/BossResource.gd" id="1_boss"]
+[ext_resource type="Script" path="res://data/BossPhaseResource.gd" id="2_phase"]
+[ext_resource type="Script" path="res://data/RadialBurstPatternResource.gd" id="3_rb"]
+[ext_resource type="Script" path="res://data/SpiralPatternResource.gd" id="4_sp"]
+
+[sub_resource type="Resource" id="pattern_burst"]
+script = ExtResource("3_rb")
+id = &"boss_04_burst"
+fire_rate = 1.0
+bullet_speed = 220.0
+bullet_count = 18
+burst_interval = 0.95
+
+[sub_resource type="Resource" id="phase_0"]
+script = ExtResource("2_phase")
+hp_threshold = 0.68
+speed_multiplier = 1.0
+phase_color = Color(1, 0.46, 0.16, 1)
+pattern = SubResource("pattern_burst")
+
+[sub_resource type="Resource" id="pattern_spiral"]
+script = ExtResource("4_sp")
+id = &"boss_04_spiral"
+fire_rate = 3.4
+bullet_speed = 246.0
+angle_step = 0.34
+arms = 6
+
+[sub_resource type="Resource" id="phase_1"]
+script = ExtResource("2_phase")
+hp_threshold = 0.34
+speed_multiplier = 1.32
+phase_color = Color(1, 0.2, 0.54, 1)
+pattern = SubResource("pattern_spiral")
+
+[sub_resource type="Resource" id="pattern_final"]
+script = ExtResource("3_rb")
+id = &"boss_04_final"
+fire_rate = 1.0
+bullet_speed = 268.0
+bullet_count = 24
+burst_interval = 0.76
+
+[sub_resource type="Resource" id="phase_2"]
+script = ExtResource("2_phase")
+hp_threshold = 0.0
+speed_multiplier = 1.78
+phase_color = Color(0.88, 0.04, 1, 1)
+pattern = SubResource("pattern_final")
+
+[resource]
+script = ExtResource("1_boss")
+id = &"boss_04"
+base_hp = 760.0
+speed = 62.0
+collision_radius = 42.0
+base_color = Color(1, 0.94, 0.3, 1)
+score_value = 650
+phases = [SubResource("phase_0"), SubResource("phase_1"), SubResource("phase_2")]

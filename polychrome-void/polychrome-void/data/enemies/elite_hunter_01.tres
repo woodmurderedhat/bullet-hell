@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyResource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://data/EnemyResource.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://data/patterns/arc_elite_02.tres" id="2_pattern"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = &"elite_hunter_01"
+base_hp = 102.0
+speed = 132.0
+collision_radius = 19.0
+pattern = ExtResource("2_pattern")
+movement_type = 0
+lateral_weight = 0.58
+preferred_range = 168.0
+dash_interval = 1.2
+dash_duration = 0.26
+dash_speed_multiplier = 2.5
+wave_frequency = 2.2
+wave_amplitude = 76.0
+color = Color(1, 0.52, 0.34, 1)
+score_value = 32

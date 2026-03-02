@@ -16,7 +16,13 @@ var _current_phase: int = 0
 var _pattern_executor: PatternExecutor = null
 var _player_ref: Node2D = null
 var _bullet_manager: BulletManager = null
+var _intelligence_tier: int = 0
+var _movement_scale: float = 1.0
+var _fire_rate_scale: float = 1.0
+var _bullet_speed_scale: float = 1.0
 var _dead: bool = false
+var _arena_min: Vector2 = Vector2(40.0, 40.0)
+var _arena_max: Vector2 = Vector2(1240.0, 680.0)
 
 const POLYGON_SIDES: int = 8
 const POLYGON_RADIUS: float = 38.0
@@ -28,7 +34,13 @@ func setup_boss(
 	scaled_hp: float,
 	id: int,
 	player: Node2D,
-	bm: BulletManager
+	bm: BulletManager,
+	arena_min: Vector2,
+	arena_max: Vector2,
+	intelligence_tier: int = 0,
+	movement_scale: float = 1.0,
+	fire_rate_scale: float = 1.0,
+	bullet_speed_scale: float = 1.0
 ) -> void:
 	_resource = res
 	_max_hp = scaled_hp
@@ -37,6 +49,12 @@ func setup_boss(
 	collision_radius = res.collision_radius
 	_player_ref = player
 	_bullet_manager = bm
+	_intelligence_tier = maxi(0, intelligence_tier)
+	_movement_scale = maxf(0.1, movement_scale)
+	_fire_rate_scale = maxf(0.1, fire_rate_scale)
+	_bullet_speed_scale = maxf(0.1, bullet_speed_scale)
+	_arena_min = arena_min
+	_arena_max = arena_max
 
 
 func _ready() -> void:
@@ -51,9 +69,24 @@ func _process(delta: float) -> void:
 	var speed: float = _resource.speed
 	if _current_phase < _resource.phases.size():
 		speed *= _resource.phases[_current_phase].speed_multiplier
+	speed *= _movement_scale
+	speed *= (1.0 + float(_intelligence_tier) * 0.04)
 	var dir: Vector2 = (_player_ref.position - position).normalized()
 	position += dir * speed * delta
+	_wrap_position_to_arena()
 	queue_redraw()
+
+
+func _wrap_position_to_arena() -> void:
+	if position.x < _arena_min.x:
+		position.x = _arena_max.x
+	elif position.x > _arena_max.x:
+		position.x = _arena_min.x
+
+	if position.y < _arena_min.y:
+		position.y = _arena_max.y
+	elif position.y > _arena_max.y:
+		position.y = _arena_min.y
 
 
 func _draw() -> void:
@@ -120,9 +153,15 @@ func _enter_phase(phase_index: int) -> void:
 	if _pattern_executor == null:
 		_pattern_executor = PatternExecutor.new()
 		add_child(_pattern_executor)
-		_pattern_executor.setup(phase_res.pattern, _bullet_manager, self)
+		_pattern_executor.setup(
+			phase_res.pattern,
+			_bullet_manager,
+			self,
+			_fire_rate_scale,
+			_bullet_speed_scale
+		)
 	else:
-		_pattern_executor.set_pattern(phase_res.pattern)
+		_pattern_executor.set_pattern(phase_res.pattern, _fire_rate_scale, _bullet_speed_scale)
 
 
 func _die() -> void:

@@ -150,9 +150,19 @@ func _handle_movement(delta: float) -> void:
 
 	var effective_speed: float = _effective_stat(stats.speed, &"speed")
 	position += dir * effective_speed * delta
-	# Clamp to arena bounds.
-	position.x = clampf(position.x, arena_min.x, arena_max.x)
-	position.y = clampf(position.y, arena_min.y, arena_max.y)
+	_wrap_position_to_arena()
+
+
+func _wrap_position_to_arena() -> void:
+	if position.x < arena_min.x:
+		position.x = arena_max.x
+	elif position.x > arena_max.x:
+		position.x = arena_min.x
+
+	if position.y < arena_min.y:
+		position.y = arena_max.y
+	elif position.y > arena_max.y:
+		position.y = arena_min.y
 
 
 func _handle_firing(delta: float) -> void:

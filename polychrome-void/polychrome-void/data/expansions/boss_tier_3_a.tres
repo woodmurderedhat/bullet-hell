@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"boss_tier_3_a"
+display_name = "BOSS TIER III: VOID SOVEREIGN"
+description = "Unlocks the highest boss tier in the first expansion pass."
+category = 0
+cost = 320
+required_unlock_ids = [&"boss_tier_2_b"]
+mutually_exclusive_group = &""
+enemy_resource_paths = []
+boss_resource_paths = ["res://data/bosses/boss_08.tres"]
+boss_hp_multiplier = 1.08
+boss_damage_multiplier = 1.06

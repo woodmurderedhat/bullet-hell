@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ArcPatternResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ArcPatternResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"arc_elite_02"
+fire_rate = 1.2
+bullet_speed = 255.0
+burst_interval = 0.66
+bullet_count = 11
+arc_degrees = 102.0
+sweep_step = 0.44

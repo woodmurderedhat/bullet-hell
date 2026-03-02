@@ -22,6 +22,7 @@ var _player: Node2D
 var _enemies: Array = []
 
 var _player_damage: float = 10.0  # Updated by Player via set_player_damage().
+var _enemy_damage_scale: float = 1.0
 var _modifier: ModifierComponent = null
 var _absorb_charges: int = 0
 
@@ -58,6 +59,10 @@ func set_player_damage(damage: float) -> void:
 	_player_damage = damage
 
 
+func set_enemy_damage_scale(scale: float) -> void:
+	_enemy_damage_scale = maxf(0.1, scale)
+
+
 func _process(_delta: float) -> void:
 	if _bullet_manager == null or _player == null:
 		return
@@ -90,7 +95,7 @@ func _check_enemy_bullets_vs_player() -> void:
 			if _consume_absorb_charge():
 				_try_reflect_bullet(hit_pos, hit_vel)
 				continue
-			EventBus.bullet_hit_player.emit(1.0)
+			EventBus.bullet_hit_player.emit(1.0 * _enemy_damage_scale)
 
 
 ## Check all active player bullets against each registered enemy.

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"intel_tier_3"
+display_name = "INTELLIGENCE TIER III"
+description = "Unlocks advanced tactical pressure and elite readiness."
+category = 4
+cost = 170
+required_unlock_ids = [&"intel_tier_2"]
+mutually_exclusive_group = &"intel_tier"
+intelligence_tier = 3

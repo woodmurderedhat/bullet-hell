@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ExpansionUnlockResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ExpansionUnlockResource.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"enemy_pack_7"
+display_name = "ENEMY PACK VII"
+description = "Increases late-wave density and aggressiveness."
+category = 1
+cost = 195
+required_unlock_ids = [&"enemy_pack_6"]
+enemy_resource_paths = []
+enemy_count_add = 3
+enemy_hp_multiplier = 1.08
+spawn_interval_scale = 0.95

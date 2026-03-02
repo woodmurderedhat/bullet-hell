@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyResource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://data/EnemyResource.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://data/patterns/spiral_elite_02.tres" id="2_pattern"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = &"elite_splitter_01"
+base_hp = 84.0
+speed = 118.0
+collision_radius = 17.0
+pattern = ExtResource("2_pattern")
+movement_type = 6
+lateral_weight = 0.68
+preferred_range = 174.0
+dash_interval = 1.3
+dash_duration = 0.24
+dash_speed_multiplier = 2.4
+wave_frequency = 3.2
+wave_amplitude = 102.0
+color = Color(0.75, 0.66, 1, 1)
+score_value = 29
