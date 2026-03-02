@@ -6,7 +6,6 @@ extends Node2D
 
 const RUN_COMPLETE_ARENA: int = 10
 const RUN_MENU_SCENE := preload("res://ui/RunMenuOverlay.gd")
-const EXPANSION_UNLOCK_DIR: String = "res://data/expansions"
 
 # ── Child node references (populated in _ready via $NodePath) ──────────────
 @onready var _bullet_manager:   BulletManager   = $BulletManager
@@ -145,25 +144,11 @@ func _build_expansion_profile_from_active_unlocks() -> Dictionary:
 	if active_ids.is_empty():
 		return profile
 
-	var catalog_by_id: Dictionary = {}
-	var dir: DirAccess = DirAccess.open(EXPANSION_UNLOCK_DIR)
-	if dir == null:
-		return profile
-
-	dir.list_dir_begin()
-	var file_name: String = dir.get_next()
-	while file_name != "":
-		if not dir.current_is_dir() and file_name.ends_with(".tres"):
-			var unlock_path: String = "%s/%s" % [EXPANSION_UNLOCK_DIR, file_name]
-			var loaded: Resource = load(unlock_path)
-			if loaded is ExpansionUnlockResource:
-				var unlock_res: ExpansionUnlockResource = loaded as ExpansionUnlockResource
-				catalog_by_id[unlock_res.id] = unlock_res
-		file_name = dir.get_next()
-	dir.list_dir_end()
+	var catalog_by_id: Dictionary = ExpansionUnlockCatalog.get_catalog_by_id()
 
 	for unlock_id: StringName in active_ids:
 		if not catalog_by_id.has(unlock_id):
+			push_warning("Main: active expansion unlock id not found in catalog: %s" % String(unlock_id))
 			continue
 		var expansion: ExpansionUnlockResource = catalog_by_id[unlock_id]
 		for enemy_path: String in expansion.enemy_resource_paths:

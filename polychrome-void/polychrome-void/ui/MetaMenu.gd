@@ -4,7 +4,6 @@ class_name MetaMenu
 extends CanvasLayer
 
 const UNLOCK_COST: int = 50  ## Currency cost per unlock.
-const EXPANSION_UNLOCK_DIR: String = "res://data/expansions"
 const COLOR_BG: Color = Color(0.03, 0.03, 0.05)
 const COLOR_TITLE: Color = Color(0.95, 0.45, 1.0)
 const COLOR_INFO: Color = Color(0.62, 0.95, 0.90)
@@ -363,29 +362,14 @@ func _category_label(category: int) -> String:
 func _load_expansion_unlock_catalog() -> void:
 	_expansion_unlocks.clear()
 	_expansion_by_id.clear()
-	var dir: DirAccess = DirAccess.open(EXPANSION_UNLOCK_DIR)
-	if dir == null:
-		push_warning("MetaMenu: expansion unlock directory missing at %s" % EXPANSION_UNLOCK_DIR)
-		return
+	_expansion_unlocks = ExpansionUnlockCatalog.get_all_unlocks()
+	for unlock_res: ExpansionUnlockResource in _expansion_unlocks:
+		_expansion_by_id[unlock_res.id] = unlock_res
 
-	dir.list_dir_begin()
-	var file_name: String = dir.get_next()
-	while file_name != "":
-		if dir.current_is_dir():
-			file_name = dir.get_next()
-			continue
-		if not file_name.ends_with(".tres"):
-			file_name = dir.get_next()
-			continue
-
-		var path: String = "%s/%s" % [EXPANSION_UNLOCK_DIR, file_name]
-		var loaded: Resource = load(path)
-		if loaded is ExpansionUnlockResource:
-			var unlock_res: ExpansionUnlockResource = loaded as ExpansionUnlockResource
-			_expansion_unlocks.append(unlock_res)
-			_expansion_by_id[unlock_res.id] = unlock_res
-		file_name = dir.get_next()
-	dir.list_dir_end()
+	if _expansion_unlocks.is_empty():
+		push_warning("MetaMenu: no expansion unlock resources loaded.")
+	else:
+		print("MetaMenu: loaded %d expansion unlock resources." % _expansion_unlocks.size())
 
 	_expansion_unlocks.sort_custom(func(a: ExpansionUnlockResource, b: ExpansionUnlockResource) -> bool:
 		if a.cost == b.cost:
