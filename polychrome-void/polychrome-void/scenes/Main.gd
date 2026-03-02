@@ -19,6 +19,7 @@ const EXPANSION_UNLOCK_DIR: String = "res://data/expansions"
 @onready var _modifier_component: ModifierComponent = $Player/ModifierComponent
 @onready var _upgrade_pool:     UpgradePool     = $UpgradePool
 @onready var _camera:           Camera2D        = $Camera2D
+@onready var _arena_backdrop:   CanvasLayer     = $ArenaBackdrop
 
 ## Arena play-field bounds.
 const ARENA_MIN: Vector2 = Vector2(40.0,  40.0)
@@ -61,6 +62,7 @@ func _ready() -> void:
 	_meta_menu.play_pressed.connect(_start_run)
 	_meta_menu.tutorial_pressed.connect(_on_tutorial_pressed)
 	_meta_menu.visible = true
+	_arena_backdrop.visible = false
 	_set_run_systems_active(false)
 	_player.set_gameplay_input_enabled(false)
 
@@ -87,6 +89,7 @@ func _start_run() -> void:
 	_pause_active = false
 	_run_menu.hide_all()
 	_meta_menu.visible = false
+	_arena_backdrop.visible = true
 	var expansion_profile: Dictionary = _build_expansion_profile_from_active_unlocks()
 	_apply_expansion_profile(expansion_profile)
 	_modifier_component.reset()
@@ -288,6 +291,7 @@ func _return_to_meta_menu() -> void:
 	get_tree().paused = false
 	_run_active = false
 	_set_run_systems_active(false)
+	_arena_backdrop.visible = false
 	_bullet_manager.clear_all()
 	AudioManager.stop_music()
 	_run_menu.hide_all()

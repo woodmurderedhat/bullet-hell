@@ -1,63 +1,62 @@
-[gd_resource type="Resource" script_class="BossResource" load_steps=10 format=3]
+[gd_resource type="Resource" script_class="BossResource" load_steps=11 format=3 uid="uid://btfbe2kuyrex8"]
 
-[ext_resource type="Script" path="res://data/BossResource.gd" id="1_boss"]
-[ext_resource type="Script" path="res://data/BossPhaseResource.gd" id="2_phase"]
-[ext_resource type="Script" path="res://data/CrossPatternResource.gd" id="3_cross"]
-[ext_resource type="Script" path="res://data/ArcPatternResource.gd" id="4_arc"]
+[ext_resource type="Script" uid="uid://dlyd0s623ci4v" path="res://data/BossResource.gd" id="1_boss"]
+[ext_resource type="Script" uid="uid://cs3l0kqaprfk0" path="res://data/BossPhaseResource.gd" id="2_phase"]
+[ext_resource type="Script" uid="uid://w0r4k2sfig38" path="res://data/CrossPatternResource.gd" id="3_cross"]
+[ext_resource type="Script" uid="uid://yl4l6ucf6y08" path="res://data/ArcPatternResource.gd" id="4_arc"]
 
 [sub_resource type="Resource" id="pattern_cross"]
 script = ExtResource("3_cross")
+burst_interval = 0.66
+angle_offset = 0.12
 id = &"boss_07_cross"
 fire_rate = 1.0
 bullet_speed = 240.0
-burst_interval = 0.66
-angle_offset = 0.12
 
 [sub_resource type="Resource" id="phase_0"]
 script = ExtResource("2_phase")
 hp_threshold = 0.67
-speed_multiplier = 1.0
-phase_color = Color(1, 0.82, 0.42, 1)
 pattern = SubResource("pattern_cross")
+phase_color = Color(1, 0.82, 0.42, 1)
 
 [sub_resource type="Resource" id="pattern_arc"]
 script = ExtResource("4_arc")
-id = &"boss_07_arc"
-fire_rate = 1.0
-bullet_speed = 264.0
 burst_interval = 0.56
 bullet_count = 13
 arc_degrees = 128.0
 sweep_step = 0.6
+id = &"boss_07_arc"
+fire_rate = 1.0
+bullet_speed = 264.0
 
 [sub_resource type="Resource" id="phase_1"]
 script = ExtResource("2_phase")
 hp_threshold = 0.34
+pattern = SubResource("pattern_arc")
 speed_multiplier = 1.36
 phase_color = Color(1, 0.64, 0.2, 1)
-pattern = SubResource("pattern_arc")
 
 [sub_resource type="Resource" id="pattern_final"]
 script = ExtResource("3_cross")
+burst_interval = 0.46
+angle_offset = 0.4
 id = &"boss_07_final"
 fire_rate = 1.0
 bullet_speed = 284.0
-burst_interval = 0.46
-angle_offset = 0.4
 
 [sub_resource type="Resource" id="phase_2"]
 script = ExtResource("2_phase")
 hp_threshold = 0.0
+pattern = SubResource("pattern_final")
 speed_multiplier = 1.95
 phase_color = Color(1, 0.28, 0.12, 1)
-pattern = SubResource("pattern_final")
 
 [resource]
 script = ExtResource("1_boss")
 id = &"boss_07"
-base_hp = 900.0
+base_hp = 9000.0
 speed = 68.0
 collision_radius = 46.0
 base_color = Color(1, 0.82, 0.4, 1)
 score_value = 820
-phases = [SubResource("phase_0"), SubResource("phase_1"), SubResource("phase_2")]
+phases = Array[ExtResource("2_phase")]([SubResource("phase_0"), SubResource("phase_1"), SubResource("phase_2")])

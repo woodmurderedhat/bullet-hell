@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://b86djfb5o3vj"]
 
-[ext_resource type="Script" path="res://tools/AutomatedPlaytest.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://d0446b676x16l" path="res://tools/AutomatedPlaytest.gd" id="1_script"]
 
 [node name="AutomatedPlaytest" type="Node"]
 script = ExtResource("1_script")
