@@ -128,8 +128,9 @@ func _on_enemy_died(_id: int, _pos: Vector2, score: int) -> void:
 
 
 func _on_wave_complete(idx: int) -> void:
-	_arena_index = idx + 1
-	_arena_label.text = "A %d" % (_arena_index + 1)
+	var cleared_levels: int = idx + 1
+	_arena_index = SpawnDirector.arena_for_cleared_levels(cleared_levels)
+	_arena_label.text = "A %d" % _arena_index
 
 
 func _on_boss_wave_started(_idx: int) -> void:

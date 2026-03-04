@@ -5,13 +5,12 @@ class_name CollisionSystem
 extends Node
 
 ## Player hitbox half-size (triangle bounding circle radius).
-const PLAYER_RADIUS: float = 10.0
+const PLAYER_RADIUS: float = 25.0
 const SECONDARY_DAMAGE_SCALE: float = 0.65
 const SPLIT_ARC_DEGREES: float = 18.0
 const SPLIT_MAX_CHILDREN: int = 6
 const CHAIN_BASE_RADIUS: float = 120.0
 const PULSE_BASE_RADIUS: float = 56.0
-const REFLECT_DEFAULT_SPEED: float = 480.0
 const CONTACT_TICK_SECONDS: float = 0.35
 
 const SLOT: int = 6  # Must match BulletManager.SLOT.
@@ -26,7 +25,7 @@ var _player_damage: float = 10.0  # Updated by Player via set_player_damage().
 var _enemy_damage_scale: float = 1.0
 var _boss_damage_scale: float = 1.0
 var _modifier: ModifierComponent = null
-var _absorb_charges: int = 0
+var _shield_system: Node2D = null
 var _contact_next_hit_time: Dictionary = {}
 
 
@@ -39,12 +38,13 @@ func _ready() -> void:
 func initialise(
 	bullet_manager: BulletManager,
 	player: Node2D,
-	modifier: ModifierComponent = null
+	modifier: ModifierComponent = null,
+	shield_system: Node2D = null
 ) -> void:
 	_bullet_manager = bullet_manager
 	_player = player
 	_modifier = modifier
-	_refresh_absorb_charges()
+	_shield_system = shield_system
 
 
 ## Register an enemy so its position is checked against player bullets.
@@ -95,15 +95,17 @@ func _check_enemy_bullets_vs_player() -> void:
 		var base: int = i * SLOT
 		if pool[base + 5] == 0.0:
 			continue
+
+		var bullet_pos: Vector2 = Vector2(pool[base + 0], pool[base + 1])
+		var bullet_vel: Vector2 = Vector2(pool[base + 2], pool[base + 3])
+		if _shield_system != null and _shield_system.has_method("try_intercept_enemy_bullet") and bool(_shield_system.call("try_intercept_enemy_bullet", bullet_pos, bullet_vel)):
+			_bullet_manager.deactivate_enemy_bullet(i)
+			continue
+
 		var dx: float = pool[base + 0] - px
 		var dy: float = pool[base + 1] - py
 		if dx * dx + dy * dy < r_sq:
-			var hit_pos: Vector2 = Vector2(pool[base + 0], pool[base + 1])
-			var hit_vel: Vector2 = Vector2(pool[base + 2], pool[base + 3])
 			_bullet_manager.deactivate_enemy_bullet(i)
-			if _consume_absorb_charge():
-				_try_reflect_bullet(hit_pos, hit_vel)
-				continue
 			var base_damage: float = _bullet_manager.get_enemy_bullet_damage(i)
 			var from_boss: bool = _bullet_manager.is_enemy_bullet_from_boss(i)
 			var scale: float = _boss_damage_scale if from_boss else _enemy_damage_scale
@@ -123,6 +125,9 @@ func _check_enemy_contact_vs_player(_delta: float) -> void:
 	for enemy in _enemies:
 		if not is_instance_valid(enemy):
 			continue
+
+		if _shield_system != null and _shield_system.has_method("try_apply_aura_contact"):
+			_shield_system.call("try_apply_aura_contact", enemy, now)
 
 		var combined_r: float = PLAYER_RADIUS + float(enemy.collision_radius)
 		var dx: float = float(enemy.position.x) - px
@@ -301,52 +306,22 @@ func _apply_pulse_aoe(primary_enemy: Variant, source_damage: float) -> void:
 			EventBus.bullet_hit_enemy.emit(int(enemy.enemy_id), source_damage * SECONDARY_DAMAGE_SCALE)
 
 
-func _consume_absorb_charge() -> bool:
-	if _absorb_charges <= 0:
-		return false
-	_absorb_charges -= 1
-	return true
-
-
-func _try_reflect_bullet(hit_pos: Vector2, hit_vel: Vector2) -> void:
-	if _trigger_stack(&"reflect_bullet") <= 0:
-		return
-	if _bullet_manager == null:
-		return
-
-	var reflect_dir: Vector2 = -hit_vel.normalized()
-	if reflect_dir.length_squared() <= 0.0001:
-		reflect_dir = Vector2.UP
-	var reflect_speed: float = maxf(hit_vel.length(), REFLECT_DEFAULT_SPEED)
-
-	_bullet_manager.spawn_player_bullet_advanced(
-		hit_pos,
-		reflect_dir,
-		reflect_speed,
-		BulletManager.PLAYER_BEHAVIOR_STRAIGHT,
-		0.0,
-		0.0,
-		0.0,
-		0,
-		_trigger_stack(&"split_on_hit"),
-		SECONDARY_DAMAGE_SCALE
-	)
-
-
 func _trigger_stack(trigger_id: StringName) -> int:
 	if _modifier == null:
 		return 0
 	return _modifier.get_trigger_stack(trigger_id)
 
 
-func _refresh_absorb_charges() -> void:
-	_absorb_charges = _trigger_stack(&"absorb_one")
-
-
 func _on_wave_complete(_arena_index: int) -> void:
-	_refresh_absorb_charges()
 	_contact_next_hit_time.clear()
 
 
 func _on_enemy_died(enemy_id: int, _position: Vector2, _score: int) -> void:
 	_contact_next_hit_time.erase(enemy_id)
+	for idx: int in range(_enemies.size() - 1, -1, -1):
+		var enemy: Variant = _enemies[idx]
+		if not is_instance_valid(enemy):
+			_enemies.remove_at(idx)
+			continue
+		if int(enemy.enemy_id) == enemy_id:
+			_enemies.remove_at(idx)

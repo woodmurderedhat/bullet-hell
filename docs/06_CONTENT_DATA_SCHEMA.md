@@ -30,6 +30,7 @@
 - id
 - fire_rate
 - bullet_speed
+- bullet_color
 
 ### Spiral Pattern Resource
 - angle_step

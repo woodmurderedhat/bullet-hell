@@ -31,6 +31,8 @@ var _is_dashing: bool = false
 var _lifetime: float = 0.0
 var _wave_seed: float = 0.0
 var _last_player_pos: Vector2 = Vector2.ZERO
+var _swarm_mode: bool = false
+var _swarm_velocity: Vector2 = Vector2.ZERO
 
 const HALF_SIZE: float = 14.0
 
@@ -85,7 +87,10 @@ func _process(delta: float) -> void:
 	_last_player_pos = player_pos
 
 	position += _compute_velocity(delta, predicted_player_pos) * delta
-	_wrap_position_to_arena()
+	if _swarm_mode:
+		_clamp_position_to_arena()
+	else:
+		_wrap_position_to_arena()
 	queue_redraw()
 
 
@@ -101,9 +106,16 @@ func _wrap_position_to_arena() -> void:
 		position.y = _arena_min.y
 
 
+func _clamp_position_to_arena() -> void:
+	position.x = clampf(position.x, _arena_min.x, _arena_max.x)
+	position.y = clampf(position.y, _arena_min.y, _arena_max.y)
+
+
 func _compute_velocity(delta: float, target_position: Vector2) -> Vector2:
 	if _resource == null or _player_ref == null:
 		return Vector2.ZERO
+	if _swarm_mode:
+		return _swarm_velocity
 
 	var to_player: Vector2 = target_position - position
 	var dist: float = to_player.length()
@@ -141,6 +153,16 @@ func _compute_velocity(delta: float, target_position: Vector2) -> Vector2:
 
 	var intelligence_speed_bonus: float = 1.0 + float(_intelligence_tier) * 0.035
 	return velocity * _base_speed_multiplier * intelligence_speed_bonus
+
+
+func enable_swarm_mode(enabled: bool) -> void:
+	_swarm_mode = enabled
+	if not enabled:
+		_swarm_velocity = Vector2.ZERO
+
+
+func set_swarm_velocity(velocity: Vector2) -> void:
+	_swarm_velocity = velocity
 
 
 func _elite_speed_multiplier(archetype: StringName) -> float:

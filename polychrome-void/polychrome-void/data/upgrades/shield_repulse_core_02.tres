@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"shield_repulse_core_02"
+rarity = 1
+tags = [&"Shield", &"Repulse"]
+stat_additive = {"bullet_damage": 4.0}
+stat_multiplicative = {}
+triggers = [&"shield_repulse_power", &"shield_radius_up"]
+branch_group = &"shield"
+branch_id = &"repulse"
+prerequisites = [&"shield_repulse_core_01"]
+required_upgrade_stacks = {}
+stack_limit = 1
+display_name = "Vector Inverter"
+description = "Repulse Shield radius +1 tier and converted bullet damage increases."

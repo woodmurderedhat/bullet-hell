@@ -11,3 +11,6 @@ extends Resource
 
 ## Speed of each spawned bullet in pixels/second.
 @export var bullet_speed: float = 180.0
+
+## Tint applied to bullets emitted by this pattern.
+@export var bullet_color: Color = Color(1.0, 0.3, 0.3, 1.0)

@@ -14,9 +14,15 @@ const ALL_UPGRADES: Array[String] = [
 	"res://data/upgrades/vector_speed_01.tres",
 	"res://data/upgrades/vector_speed_02.tres",
 	"res://data/upgrades/vector_pierce_01.tres",
-	"res://data/upgrades/orbit_shield_01.tres",
-	"res://data/upgrades/orbit_shield_02.tres",
-	"res://data/upgrades/orbit_rate_01.tres",
+	"res://data/upgrades/shield_absorb_core_01.tres",
+	"res://data/upgrades/shield_absorb_core_02.tres",
+	"res://data/upgrades/shield_absorb_core_03.tres",
+	"res://data/upgrades/shield_repulse_core_01.tres",
+	"res://data/upgrades/shield_repulse_core_02.tres",
+	"res://data/upgrades/shield_repulse_core_03.tres",
+	"res://data/upgrades/shield_aura_core_01.tres",
+	"res://data/upgrades/shield_aura_core_02.tres",
+	"res://data/upgrades/shield_aura_core_03.tres",
 	"res://data/upgrades/pulse_damage_01.tres",
 	"res://data/upgrades/pulse_damage_02.tres",
 	"res://data/upgrades/pulse_aoe_01.tres",
@@ -44,9 +50,6 @@ const ALL_UPGRADES: Array[String] = [
 	"res://data/upgrades/crit_chance_01.tres",
 	"res://data/upgrades/crit_chance_02.tres",
 	"res://data/upgrades/crit_multi_01.tres",
-	"res://data/upgrades/shield_block_01.tres",
-	"res://data/upgrades/shield_block_02.tres",
-	"res://data/upgrades/shield_reflect_01.tres",
 	"res://data/upgrades/chaos_reroll_01.tres",
 	"res://data/upgrades/chaos_reroll_02.tres",
 	"res://data/upgrades/chaos_gamble_01.tres",
@@ -109,11 +112,42 @@ func generate_offer(
 ## it is still included — unlocks only gate locked content injected by MetaMenu).
 func _build_available_pool(modifier: ModifierComponent = null) -> Array[UpgradeResource]:
 	var pool: Array[UpgradeResource] = []
+	var branch_locks: Dictionary = _resolve_branch_locks(modifier)
 	for res: UpgradeResource in _all_resources:
 		if modifier != null and not modifier.can_apply_upgrade(res):
 			continue
+		if _is_blocked_by_branch_lock(res, branch_locks):
+			continue
 		pool.append(res)
 	return pool
+
+
+func _resolve_branch_locks(modifier: ModifierComponent = null) -> Dictionary:
+	var locks: Dictionary = {}
+	if modifier == null:
+		return locks
+
+	for res: UpgradeResource in _all_resources:
+		if res.branch_group == StringName() or res.branch_id == StringName():
+			continue
+		if modifier.get_upgrade_stack(res.id) <= 0:
+			continue
+		var group_key: String = str(res.branch_group)
+		if not locks.has(group_key):
+			locks[group_key] = res.branch_id
+
+	return locks
+
+
+func _is_blocked_by_branch_lock(res: UpgradeResource, branch_locks: Dictionary) -> bool:
+	if res.branch_group == StringName() or res.branch_id == StringName():
+		return false
+
+	var group_key: String = str(res.branch_group)
+	if not branch_locks.has(group_key):
+		return false
+
+	return StringName(branch_locks[group_key]) != res.branch_id
 
 
 ## Compute per-item draw weights combining rarity and synergy bias.

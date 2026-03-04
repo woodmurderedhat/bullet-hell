@@ -4,13 +4,15 @@
 class_name Main
 extends Node2D
 
-const RUN_COMPLETE_ARENA: int = 10
+const STANDARD_CLEAR_ARENAS: int = 3
 const RUN_MENU_SCENE := preload("res://ui/RunMenuOverlay.gd")
 
 # ── Child node references (populated in _ready via $NodePath) ──────────────
 @onready var _bullet_manager:   BulletManager   = $BulletManager
 @onready var _collision_system: CollisionSystem = $CollisionSystem
+@onready var _shield_system:    Node2D          = $ShieldSystem
 @onready var _spawn_director:   SpawnDirector   = $SpawnDirector
+@onready var _swarm_director = $SwarmDirector
 @onready var _player:           Player          = $Player
 @onready var _hud:              HUD             = $HUD
 @onready var _upgrade_picker:   UpgradePicker   = $UpgradePicker
@@ -38,16 +40,20 @@ func _ready() -> void:
 	_apply_saved_input_bindings()
 
 	# Wire systems.
-	_collision_system.initialise(_bullet_manager, _player, _modifier_component)
+	if _shield_system != null and _shield_system.has_method("initialise"):
+		_shield_system.call("initialise", _player, _modifier_component, _bullet_manager)
+	_collision_system.initialise(_bullet_manager, _player, _modifier_component, _shield_system)
 	_collision_system.set_enemy_damage_scale(1.0)
 	_collision_system.set_boss_damage_scale(1.0)
 	_player.initialise(_bullet_manager, _collision_system, _modifier_component)
 	_player.arena_min = _arena_min_runtime
 	_player.arena_max = _arena_max_runtime
 
-	_spawn_director.initialise(_player, _bullet_manager, _collision_system, self)
+	_spawn_director.initialise(_player, _bullet_manager, _collision_system, self, _swarm_director)
 	_spawn_director.arena_min = _arena_min_runtime
 	_spawn_director.arena_max = _arena_max_runtime
+	_swarm_director.arena_min = _arena_min_runtime
+	_swarm_director.arena_max = _arena_max_runtime
 
 	_hud.set_player(_player)
 	_upgrade_picker.initialise(_upgrade_pool, _modifier_component)
@@ -93,6 +99,8 @@ func _start_run() -> void:
 	var expansion_profile: Dictionary = _build_expansion_profile_from_active_unlocks()
 	_apply_expansion_profile(expansion_profile)
 	_modifier_component.reset()
+	if _shield_system != null and _shield_system.has_method("refresh_state"):
+		_shield_system.call("refresh_state", true)
 	_player.stats = Player.PlayerStats.new()
 	_apply_loadout_to_player()
 	_apply_daily_modifier_to_player()
@@ -116,6 +124,8 @@ func _apply_expansion_profile(profile: Dictionary) -> void:
 	_player.arena_max = _arena_max_runtime
 	_spawn_director.arena_min = _arena_min_runtime
 	_spawn_director.arena_max = _arena_max_runtime
+	_swarm_director.arena_min = _arena_min_runtime
+	_swarm_director.arena_max = _arena_max_runtime
 	_spawn_director.apply_expansion_profile(profile)
 
 	var enemy_damage_mult: float = float(profile.get("enemy_damage_multiplier", 1.0))
@@ -184,7 +194,13 @@ func _set_run_systems_active(active: bool) -> void:
 		_upgrade_picker.visible = false
 	_bullet_manager.set_process(active)
 	_collision_system.set_process(active)
+	_shield_system.set_process(active)
+	var shield_active: bool = false
+	if _shield_system != null and _shield_system.has_method("is_active"):
+		shield_active = bool(_shield_system.call("is_active"))
+	_shield_system.visible = active and shield_active
 	_spawn_director.set_process(active)
+	_swarm_director.set_process(active)
 	_hud.visible = active
 
 
@@ -197,6 +213,8 @@ func _on_upgrade_chosen(res: Resource) -> void:
 		return
 	_player.set_gameplay_input_enabled(true)
 	_modifier_component.apply_upgrade(res as UpgradeResource)
+	if _shield_system != null and _shield_system.has_method("refresh_state"):
+		_shield_system.call("refresh_state")
 	# Notify player so CollisionSystem damage value stays current.
 	_player.refresh_stats()
 	# Small HP heal on pickup (10 pts, capped at effective max).
@@ -220,7 +238,8 @@ func _on_wave_complete(_arena_index: int) -> void:
 		return
 
 	var endless_mode: bool = bool(SaveService.get_save("endless_mode", false))
-	if not endless_mode and _spawn_director.arena_index >= RUN_COMPLETE_ARENA:
+	var standard_clear_levels: int = SpawnDirector.total_levels_through_arena(STANDARD_CLEAR_ARENAS)
+	if not endless_mode and _spawn_director.arena_index >= standard_clear_levels:
 		_end_run(true)
 		return
 
@@ -239,7 +258,8 @@ func _end_run(won: bool) -> void:
 	var result: Dictionary = {
 		"won": won,
 		"score": _score,
-		"arena_reached": _spawn_director.arena_index,
+		"arena_reached": SpawnDirector.arena_for_cleared_levels(_spawn_director.arena_index),
+		"levels_cleared": _spawn_director.arena_index,
 	}
 	EventBus.run_ended.emit(result)
 
@@ -256,7 +276,13 @@ func _end_run(won: bool) -> void:
 		int(SaveService.get_save("runs_completed", 0)) + 1
 	)
 
-	_run_menu.show_result_menu(won, _score, _spawn_director.arena_index, TelemetryService.get_snapshot())
+	_run_menu.show_result_menu(
+		won,
+		_score,
+		SpawnDirector.arena_for_cleared_levels(_spawn_director.arena_index),
+		_spawn_director.arena_index,
+		TelemetryService.get_snapshot()
+	)
 
 
 func _pause_run() -> void:
@@ -333,7 +359,7 @@ func _apply_saved_input_bindings() -> void:
 			if ev is InputEventKey:
 				InputMap.action_erase_event(action_name, ev)
 		var key_event: InputEventKey = InputEventKey.new()
-		key_event.keycode = int(bindings[action_name])
+		key_event.keycode = int(bindings[action_name]) as Key
 		InputMap.action_add_event(action_name, key_event)
 
 

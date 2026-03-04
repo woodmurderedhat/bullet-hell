@@ -1,15 +1,17 @@
-[gd_scene load_steps=11 format=3 uid="uid://main_scene"]
+[gd_scene load_steps=13 format=3 uid="uid://dk7dwjuro1b76"]
 
-[ext_resource type="Script" path="res://scenes/Main.gd" id="1_main"]
-[ext_resource type="Script" path="res://combat/BulletManager.gd" id="2_bm"]
-[ext_resource type="Script" path="res://combat/CollisionSystem.gd" id="3_cs"]
-[ext_resource type="Script" path="res://systems/SpawnDirector.gd" id="4_sd"]
-[ext_resource type="Script" path="res://systems/UpgradePool.gd" id="5_up"]
-[ext_resource type="Script" path="res://player/Player.gd" id="6_pl"]
-[ext_resource type="Script" path="res://systems/ModifierComponent.gd" id="7_mc"]
-[ext_resource type="Script" path="res://ui/HUD.gd" id="8_hud"]
-[ext_resource type="Script" path="res://ui/UpgradePicker.gd" id="9_upk"]
-[ext_resource type="Script" path="res://ui/MetaMenu.gd" id="10_mm"]
+[ext_resource type="Script" uid="uid://stqh2qqjy0i1" path="res://scenes/Main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://b3wsx8sa44cfl" path="res://combat/BulletManager.gd" id="2_bm"]
+[ext_resource type="Script" uid="uid://dq6bdny847vd" path="res://combat/CollisionSystem.gd" id="3_cs"]
+[ext_resource type="Script" uid="uid://bl3p6o3pdvcbm" path="res://systems/SpawnDirector.gd" id="4_sd"]
+[ext_resource type="Script" uid="uid://drwygxdste53o" path="res://systems/UpgradePool.gd" id="5_up"]
+[ext_resource type="Script" uid="uid://c6jojr1b046rc" path="res://player/Player.gd" id="6_pl"]
+[ext_resource type="Script" uid="uid://bid8pb0memmmt" path="res://systems/ModifierComponent.gd" id="7_mc"]
+[ext_resource type="Script" uid="uid://boniltkks71l4" path="res://ui/HUD.gd" id="8_hud"]
+[ext_resource type="Script" uid="uid://dw2ysirdqknih" path="res://ui/UpgradePicker.gd" id="9_upk"]
+[ext_resource type="Script" uid="uid://dq6in8gcpjh1t" path="res://ui/MetaMenu.gd" id="10_mm"]
+[ext_resource type="Script" uid="uid://bs1sb4a0peobo" path="res://combat/ShieldSystem.gd" id="11_ss"]
+[ext_resource type="Script" uid="uid://p1u7jbi6gfvd" path="res://systems/SwarmDirector.gd" id="12_sw"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -27,7 +29,6 @@ color = Color(0, 0, 0, 1)
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(640, 360)
-zoom = Vector2(1, 1)
 
 [node name="BulletManager" type="Node2D" parent="."]
 script = ExtResource("2_bm")
@@ -35,8 +36,14 @@ script = ExtResource("2_bm")
 [node name="CollisionSystem" type="Node" parent="."]
 script = ExtResource("3_cs")
 
+[node name="ShieldSystem" type="Node2D" parent="."]
+script = ExtResource("11_ss")
+
 [node name="SpawnDirector" type="Node" parent="."]
 script = ExtResource("4_sd")
+
+[node name="SwarmDirector" type="Node" parent="."]
+script = ExtResource("12_sw")
 
 [node name="UpgradePool" type="Node" parent="."]
 script = ExtResource("5_up")

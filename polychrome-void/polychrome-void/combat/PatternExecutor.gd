@@ -11,6 +11,7 @@ var _fire_rate_scale: float = 1.0
 var _bullet_speed_scale: float = 1.0
 var _source_projectile_damage: float = 1.0
 var _source_is_boss: bool = false
+var _pattern_bullet_color: Color = Color(1.0, 0.3, 0.3, 1.0)
 
 # Shared state.
 var _fire_timer: float = 0.0
@@ -38,6 +39,7 @@ func setup(
 	_fire_rate_scale = maxf(0.1, fire_rate_scale)
 	_bullet_speed_scale = maxf(0.1, bullet_speed_scale)
 	_refresh_owner_damage_source()
+	_refresh_pattern_color()
 
 
 ## Hot-swap to a new pattern mid-run (used by Boss phase transitions).
@@ -50,6 +52,7 @@ func set_pattern(pattern: PatternResource, fire_rate_scale: float = 1.0, bullet_
 	_fire_rate_scale = maxf(0.1, fire_rate_scale)
 	_bullet_speed_scale = maxf(0.1, bullet_speed_scale)
 	_refresh_owner_damage_source()
+	_refresh_pattern_color()
 
 
 func _process(delta: float) -> void:
@@ -85,12 +88,13 @@ func _process_spiral(_delta: float) -> void:
 	for a: int in range(sp.arms):
 		var angle: float = _spiral_angle + arm_arc * float(a)
 		var dir: Vector2 = Vector2(cos(angle), sin(angle))
-		_bullet_manager.spawn_enemy_bullet(
+		_bullet_manager.spawn_enemy_bullet_colored(
 			origin,
 			dir,
 			sp.bullet_speed * _bullet_speed_scale,
 			_source_projectile_damage,
-			_source_is_boss
+			_source_is_boss,
+			_pattern_bullet_color
 		)
 
 
@@ -109,12 +113,13 @@ func _process_radial_burst() -> void:
 	for b: int in range(rb.bullet_count):
 		var angle: float = arc * float(b)
 		var dir: Vector2 = Vector2(cos(angle), sin(angle))
-		_bullet_manager.spawn_enemy_bullet(
+		_bullet_manager.spawn_enemy_bullet_colored(
 			origin,
 			dir,
 			rb.bullet_speed * _bullet_speed_scale,
 			_source_projectile_damage,
-			_source_is_boss
+			_source_is_boss,
+			_pattern_bullet_color
 		)
 
 
@@ -132,12 +137,13 @@ func _process_arc_pattern() -> void:
 
 	if count == 1:
 		var dir_single: Vector2 = Vector2.from_angle(_arc_angle)
-		_bullet_manager.spawn_enemy_bullet(
+		_bullet_manager.spawn_enemy_bullet_colored(
 			origin,
 			dir_single,
 			arcp.bullet_speed * _bullet_speed_scale,
 			_source_projectile_damage,
-			_source_is_boss
+			_source_is_boss,
+			_pattern_bullet_color
 		)
 		return
 
@@ -145,12 +151,13 @@ func _process_arc_pattern() -> void:
 		var ratio: float = float(i) / float(count - 1)
 		var offset: float = lerpf(-arc_radians * 0.5, arc_radians * 0.5, ratio)
 		var dir: Vector2 = Vector2.from_angle(_arc_angle + offset)
-		_bullet_manager.spawn_enemy_bullet(
+		_bullet_manager.spawn_enemy_bullet_colored(
 			origin,
 			dir,
 			arcp.bullet_speed * _bullet_speed_scale,
 			_source_projectile_damage,
-			_source_is_boss
+			_source_is_boss,
+			_pattern_bullet_color
 		)
 
 
@@ -168,12 +175,13 @@ func _process_cross_pattern() -> void:
 	for i: int in range(4):
 		var angle: float = base + PI * 0.5 * float(i)
 		var dir: Vector2 = Vector2.from_angle(angle)
-		_bullet_manager.spawn_enemy_bullet(
+		_bullet_manager.spawn_enemy_bullet_colored(
 			origin,
 			dir,
 			cp.bullet_speed * _bullet_speed_scale,
 			_source_projectile_damage,
-			_source_is_boss
+			_source_is_boss,
+			_pattern_bullet_color
 		)
 
 
@@ -186,3 +194,10 @@ func _refresh_owner_damage_source() -> void:
 		_source_projectile_damage = float(_owner_node.call("get_projectile_damage"))
 	if _owner_node.has_method("is_boss_unit"):
 		_source_is_boss = bool(_owner_node.call("is_boss_unit"))
+
+
+func _refresh_pattern_color() -> void:
+	if _pattern == null:
+		_pattern_bullet_color = Color(1.0, 0.3, 0.3, 1.0)
+		return
+	_pattern_bullet_color = _pattern.bullet_color

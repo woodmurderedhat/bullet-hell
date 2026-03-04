@@ -25,6 +25,13 @@ enum Rarity { COMMON = 0, RARE = 1, EPIC = 2, LEGENDARY = 3 }
 ## Trigger IDs this upgrade activates (resolved by ModifierComponent).
 @export var triggers: Array[StringName] = []
 
+## Optional exclusive branch group id (e.g. "shield").
+## If set, UpgradePool can lock offers to a chosen branch for this group.
+@export var branch_group: StringName = &""
+
+## Optional branch id within branch_group (e.g. "absorb", "repulse", "aura").
+@export var branch_id: StringName = &""
+
 ## Required upgrade IDs that must already be owned before this can be offered.
 @export var prerequisites: Array[StringName] = []
 

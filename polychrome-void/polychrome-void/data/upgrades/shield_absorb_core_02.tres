@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"shield_absorb_core_02"
+rarity = 1
+tags = [&"Shield", &"Absorb"]
+stat_additive = {"max_hp": 14.0}
+stat_multiplicative = {}
+triggers = [&"shield_absorb_charge", &"shield_radius_up"]
+branch_group = &"shield"
+branch_id = &"absorb"
+prerequisites = [&"shield_absorb_core_01"]
+required_upgrade_stacks = {}
+stack_limit = 1
+display_name = "Aegis Lattice"
+description = "Absorb Shield radius +1 tier, +1 charge capacity, and +14 max HP."

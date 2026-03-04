@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"shield_aura_core_01"
+rarity = 0
+tags = [&"Shield", &"Aura"]
+stat_additive = {"max_hp": 8.0}
+stat_multiplicative = {}
+triggers = [&"shield_branch_aura", &"shield_aura_burst"]
+branch_group = &"shield"
+branch_id = &"aura"
+prerequisites = []
+required_upgrade_stacks = {}
+stack_limit = 1
+display_name = "Void Halo"
+description = "Unlocks Aura Shield. Enemies touching the shield take burst damage."

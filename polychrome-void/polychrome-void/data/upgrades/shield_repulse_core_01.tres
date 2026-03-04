@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"shield_repulse_core_01"
+rarity = 0
+tags = [&"Shield", &"Repulse"]
+stat_additive = {"max_hp": 10.0}
+stat_multiplicative = {}
+triggers = [&"shield_branch_repulse"]
+branch_group = &"shield"
+branch_id = &"repulse"
+prerequisites = []
+required_upgrade_stacks = {}
+stack_limit = 1
+display_name = "Polarity Ring"
+description = "Unlocks Repulse Shield. Intercepted bullets are converted into player bullets."

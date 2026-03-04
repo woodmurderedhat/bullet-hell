@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"shield_aura_core_02"
+rarity = 1
+tags = [&"Shield", &"Aura"]
+stat_additive = {"bullet_damage": 3.0}
+stat_multiplicative = {}
+triggers = [&"shield_aura_burst", &"shield_radius_up"]
+branch_group = &"shield"
+branch_id = &"aura"
+prerequisites = [&"shield_aura_core_01"]
+required_upgrade_stacks = {}
+stack_limit = 1
+display_name = "Prismatic Halo"
+description = "Aura Shield radius +1 tier and contact burst damage increases."

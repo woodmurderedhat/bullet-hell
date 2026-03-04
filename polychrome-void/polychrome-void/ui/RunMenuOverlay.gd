@@ -57,14 +57,15 @@ func show_pause_menu() -> void:
 	_update_setting_values()
 
 
-func show_result_menu(won: bool, score: int, arena_reached: int, telemetry: Dictionary) -> void:
+func show_result_menu(won: bool, score: int, arena_reached: int, levels_cleared: int, telemetry: Dictionary) -> void:
 	visible = true
 	_tutorial_returns_to_pause = false
 	_show_only(_result_panel)
 	_result_title.text = "RUN COMPLETE" if won else "RUN FAILED"
-	_result_summary.text = "S %d\nA %d\nT %.1fs\nK %d" % [
+	_result_summary.text = "S %d\nL %d\nA %d\nT %.1fs\nK %d" % [
 		score,
-		arena_reached + 1,
+		levels_cleared,
+		arena_reached,
 		float(telemetry.get("session_time", 0.0)),
 		int(telemetry.get("enemies_killed", 0)),
 	]
@@ -283,7 +284,7 @@ func _build_tutorial_panel() -> void:
 	info.size = Vector2(680.0, 390.0)
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_theme_color_override("font_color", COLOR_TEXT)
-	info.text = "MOVE: WASD / ARROWS\nFIRE: SPACE / RMB\nDASH TO CURSOR: LMB\n\nCLEAR WAVES. PICK 1 OF 3 UPGRADES.\nBOSS EVERY 5TH ARENA.\n\nTAGS: VECTOR ORBIT PULSE FRACTAL\nENTROPY SUSTAIN CRIT SHIELD CHAOS\n\nESC = PAUSE"
+	info.text = "MOVE: WASD / ARROWS\nFIRE: SPACE / RMB\nDASH TO CURSOR: LMB\n\nCLEAR WAVES. PICK 1 OF 3 UPGRADES.\nBOSS EVERY 5 LEVELS.\n\nTAGS: VECTOR ORBIT PULSE FRACTAL\nENTROPY SUSTAIN CRIT SHIELD CHAOS\n\nESC = PAUSE"
 	_tutorial_panel.add_child(info)
 
 	var back_btn: Button = _make_button("BACK", Vector2(590.0, 500.0), Vector2(140.0, 42.0), COLOR_BUTTON_PRIMARY)

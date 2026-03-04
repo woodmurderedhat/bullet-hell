@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"shield_repulse_core_03"
+rarity = 2
+tags = [&"Shield", &"Repulse"]
+stat_additive = {"max_hp": 16.0}
+stat_multiplicative = {}
+triggers = [&"shield_cooldown_fast", &"shield_orbit_fragments", &"shield_repulse_power"]
+branch_group = &"shield"
+branch_id = &"repulse"
+prerequisites = [&"shield_repulse_core_02"]
+required_upgrade_stacks = {}
+stack_limit = 1
+display_name = "Flux Bastion"
+description = "Repulse Shield cools down faster and fires stronger converted rounds."

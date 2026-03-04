@@ -20,7 +20,7 @@ const PLAYER_BEHAVIOR_STRAIGHT: int = 0
 const PLAYER_BEHAVIOR_WAVE: int = 1
 
 ## Bullet visual sizes in pixels.
-const ENEMY_BULLET_RADIUS: float = 6.0
+const ENEMY_BULLET_RADIUS: float = 3.0
 const PLAYER_BULLET_HALF_W: float = 2.5
 const PLAYER_BULLET_HALF_H: float = 8.0
 
@@ -130,11 +130,13 @@ func _ready() -> void:
 
 	_player_mmi = _build_multimesh_instance(
 		Vector2(PLAYER_BULLET_HALF_W * 2.0, PLAYER_BULLET_HALF_H * 2.0),
-		false
+		false,
+		PLAYER_BULLET_COLOR
 	)
 	_enemy_mmi = _build_multimesh_instance(
 		Vector2(ENEMY_BULLET_RADIUS * 2.0, ENEMY_BULLET_RADIUS * 2.0),
-		true
+		true,
+		ENEMY_BULLET_COLOR
 	)
 
 	_player_multimesh = _player_mmi.multimesh
@@ -147,14 +149,16 @@ func _ready() -> void:
 ## Build a MultiMeshInstance2D with a flat quad mesh and optional circle shader.
 func _build_multimesh_instance(
 	quad_size: Vector2,
-	circle_shader: bool
+	circle_shader: bool,
+	default_color: Color
 ) -> MultiMeshInstance2D:
 
 	var qm: QuadMesh = QuadMesh.new()
 	qm.size = quad_size
 
-	var mat: ShaderMaterial = ShaderMaterial.new()
+	var mat: ShaderMaterial = null
 	if circle_shader:
+		mat = ShaderMaterial.new()
 		var s: Shader = Shader.new()
 		s.code = """
 shader_type canvas_item;
@@ -162,24 +166,15 @@ void fragment() {
     vec2 uv = UV - vec2(0.5);
     float dist = length(uv);
     if (dist > 0.5) discard;
-    COLOR = vec4(1.0, 0.3, 0.3, 1.0);
+    COLOR = vec4(COLOR.rgb, COLOR.a);
 }
 """
 		mat.shader = s
-	else:
-		var s: Shader = Shader.new()
-		s.code = """
-shader_type canvas_item;
-void fragment() {
-    COLOR = vec4(0.4, 1.0, 0.6, 1.0);
-}
-"""
-		mat.shader = s
-
-	qm.material = mat
+		qm.material = mat
 
 	var mm: MultiMesh = MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_2D
+	mm.use_colors = true
 	mm.instance_count = MAX_BULLETS
 	mm.mesh = qm
 
@@ -187,6 +182,7 @@ void fragment() {
 	var hidden_xform: Transform2D = Transform2D(0.0, HIDDEN_POS)
 	for i: int in range(MAX_BULLETS):
 		mm.set_instance_transform_2d(i, hidden_xform)
+		mm.set_instance_color(i, default_color)
 
 	var mmi: MultiMeshInstance2D = MultiMeshInstance2D.new()
 	mmi.multimesh = mm
@@ -238,6 +234,7 @@ func spawn_player_bullet_advanced(
 	_player_split_depth[slot] = split_depth
 	_player_split_budget[slot] = split_budget
 	_player_damage_scale[slot] = damage_scale
+	_player_multimesh.set_instance_color(slot, PLAYER_BULLET_COLOR)
 
 	return slot
 
@@ -250,18 +247,31 @@ func spawn_enemy_bullet(
 	base_damage: float = 1.0,
 	is_boss_source: bool = false
 ) -> void:
+	spawn_enemy_bullet_colored(pos, dir, speed, base_damage, is_boss_source, ENEMY_BULLET_COLOR)
+
+
+func spawn_enemy_bullet_colored(
+	pos: Vector2,
+	dir: Vector2,
+	speed: float,
+	base_damage: float = 1.0,
+	is_boss_source: bool = false,
+	bullet_color: Color = ENEMY_BULLET_COLOR
+) -> void:
 	var slot: int = _find_free_enemy_slot()
 	if slot == -1:
 		return
+	var n_dir: Vector2 = dir.normalized()
 	var base: int = slot * SLOT
 	_enemy_pool[base + 0] = pos.x
 	_enemy_pool[base + 1] = pos.y
-	_enemy_pool[base + 2] = dir.x * speed
-	_enemy_pool[base + 3] = dir.y * speed
+	_enemy_pool[base + 2] = n_dir.x * speed
+	_enemy_pool[base + 3] = n_dir.y * speed
 	_enemy_pool[base + 4] = BULLET_LIFETIME
 	_enemy_pool[base + 5] = 1.0
 	_enemy_source_damage[slot] = maxf(0.0, base_damage)
 	_enemy_source_is_boss[slot] = 1 if is_boss_source else 0
+	_enemy_multimesh.set_instance_color(slot, bullet_color)
 
 
 ## Deactivate a specific player bullet slot (called by CollisionSystem on hit).
@@ -286,6 +296,7 @@ func deactivate_player_bullet(slot: int) -> void:
 	_player_split_budget[slot] = 0
 	_player_damage_scale[slot] = 1.0
 	_player_multimesh.set_instance_transform_2d(slot, Transform2D(0.0, HIDDEN_POS))
+	_player_multimesh.set_instance_color(slot, PLAYER_BULLET_COLOR)
 
 
 ## Deactivate a specific enemy bullet slot (called by CollisionSystem on hit).
@@ -296,6 +307,7 @@ func deactivate_enemy_bullet(slot: int) -> void:
 	_enemy_pool[base + 5] = 0.0
 	_enemy_source_damage[slot] = 1.0
 	_enemy_source_is_boss[slot] = 0
+	_enemy_multimesh.set_instance_color(slot, ENEMY_BULLET_COLOR)
 	_enemy_multimesh.set_instance_transform_2d(slot, Transform2D(0.0, HIDDEN_POS))
 
 
@@ -473,5 +485,7 @@ func clear_all() -> void:
 		_player_damage_scale[i] = 1.0
 		_enemy_source_damage[i] = 1.0
 		_enemy_source_is_boss[i] = 0
+		_player_multimesh.set_instance_color(i, PLAYER_BULLET_COLOR)
+		_enemy_multimesh.set_instance_color(i, ENEMY_BULLET_COLOR)
 		_player_multimesh.set_instance_transform_2d(i, hidden_xform)
 		_enemy_multimesh.set_instance_transform_2d(i, hidden_xform)

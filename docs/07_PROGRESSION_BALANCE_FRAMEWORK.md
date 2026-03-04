@@ -7,6 +7,14 @@
 - Enemy count baseline: `4 + arena_index * 2`
 - Spawn interval baseline: `max(0.4, 1.2 - arena_index * 0.05)`
 
+## Arena Length & Boss Cadence
+
+- Arena 1 length: `25` levels
+- Per-arena growth: `+10` levels each subsequent arena
+- Arena length formula: `25 + (arena_number - 1) * 10`
+- Standard mode clear target: `90` total levels (through Arena 3)
+- Boss cadence: every `5` levels using internal level-index cadence (`5, 10, 15, ...`)
+
 ## Upgrade Offer Distribution
 
 - Common 60%

@@ -1,11 +1,10 @@
-[gd_resource type="Resource" script_class="RadialBurstPatternResource" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="RadialBurstPatternResource" load_steps=2 format=3 uid="uid://0xickphxp4iy"]
 
-[ext_resource type="Script" path="res://data/RadialBurstPatternResource.gd" id="1"]
+[ext_resource type="Script" uid="uid://2jxjqou2r37w" path="res://data/RadialBurstPatternResource.gd" id="1"]
 
 [resource]
 script = ExtResource("1")
-id = &"radial_elite_03"
-fire_rate = 2.2
-bullet_speed = 250.0
 bullet_count = 22
 burst_interval = 0.82
+id = &"radial_elite_03"
+fire_rate = 2.2

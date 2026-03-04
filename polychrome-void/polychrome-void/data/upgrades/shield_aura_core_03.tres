@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/UpgradeResource.gd" id="1_upg"]
+
+[resource]
+script = ExtResource("1_upg")
+id = &"shield_aura_core_03"
+rarity = 2
+tags = [&"Shield", &"Aura"]
+stat_additive = {"max_hp": 14.0}
+stat_multiplicative = {}
+triggers = [&"shield_aura_burst", &"shield_cooldown_fast", &"shield_orbit_fragments"]
+branch_group = &"shield"
+branch_id = &"aura"
+prerequisites = [&"shield_aura_core_02"]
+required_upgrade_stacks = {}
+stack_limit = 1
+display_name = "Singularity Crown"
+description = "Aura Shield bursts harder, cycles faster, and adds additional orbit fragments."
