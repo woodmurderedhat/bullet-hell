@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = &"radial_elite_02"
-fire_rate = 1.8
+fire_rate = 0.5
 bullet_speed = 235.0
 bullet_count = 18
 burst_interval = 0.95

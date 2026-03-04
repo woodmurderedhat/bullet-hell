@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_spiral")
 id = &"spiral_01"
-fire_rate = 2.0
+fire_rate = 0.5
 bullet_speed = 160.0
 angle_step = 0.22
 arms = 3

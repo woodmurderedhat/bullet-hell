@@ -7,4 +7,4 @@ script = ExtResource("1")
 bullet_count = 22
 burst_interval = 0.82
 id = &"radial_elite_03"
-fire_rate = 2.2
+fire_rate = 0.5
