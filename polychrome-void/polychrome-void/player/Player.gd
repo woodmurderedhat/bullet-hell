@@ -11,8 +11,8 @@ class PlayerStats:
 	var current_hp: float    = 10.0
 	## Base values — used as input to ModifierComponent.get_stat().
 	var speed: float         = 110.0
-	var fire_rate: float     = 1.0    ## Bullets per second.
-	var bullet_damage: float = 5.0
+	var fire_rate: float     = 10.0    ## Bullets per second.
+	var bullet_damage: float = 10.0
 	var bullet_speed: float  = 480.0
 
 ## Triangle visual half-size.

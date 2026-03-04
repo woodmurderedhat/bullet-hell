@@ -1,11 +1,11 @@
-[gd_resource type="Resource" script_class="SpiralPatternResource" load_steps=2 format=3 uid="uid://spiral_02"]
+[gd_resource type="Resource" script_class="SpiralPatternResource" load_steps=2 format=3 uid="uid://8tsq4lw6cvxt"]
 
-[ext_resource type="Script" path="res://data/SpiralPatternResource.gd" id="1_spiral"]
+[ext_resource type="Script" uid="uid://dbqcy25l41cg4" path="res://data/SpiralPatternResource.gd" id="1_spiral"]
 
 [resource]
 script = ExtResource("1_spiral")
+angle_step = 0.28
+arms = 4
 id = &"spiral_02"
 fire_rate = 1.0
 bullet_speed = 190.0
-angle_step = 0.28
-arms = 4

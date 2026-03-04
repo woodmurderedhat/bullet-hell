@@ -1,13 +1,12 @@
-[gd_resource type="Resource" script_class="ArcPatternResource" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ArcPatternResource" load_steps=2 format=3 uid="uid://tavjnfrpyhid"]
 
-[ext_resource type="Script" path="res://data/ArcPatternResource.gd" id="1_arc"]
+[ext_resource type="Script" uid="uid://yl4l6ucf6y08" path="res://data/ArcPatternResource.gd" id="1_arc"]
 
 [resource]
 script = ExtResource("1_arc")
+burst_interval = 0.85
+arc_degrees = 78.0
+sweep_step = 0.28
 id = &"arc_01"
 fire_rate = 0.5
 bullet_speed = 185.0
-burst_interval = 0.85
-bullet_count = 7
-arc_degrees = 78.0
-sweep_step = 0.28

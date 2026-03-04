@@ -1,11 +1,10 @@
-[gd_resource type="Resource" script_class="CrossPatternResource" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="CrossPatternResource" load_steps=2 format=3 uid="uid://jaucsa6ereor"]
 
-[ext_resource type="Script" path="res://data/CrossPatternResource.gd" id="1_cross"]
+[ext_resource type="Script" uid="uid://w0r4k2sfig38" path="res://data/CrossPatternResource.gd" id="1_cross"]
 
 [resource]
 script = ExtResource("1_cross")
+burst_interval = 0.7
 id = &"cross_01"
 fire_rate = 0.5
 bullet_speed = 200.0
-burst_interval = 0.7
-angle_offset = 0.0
