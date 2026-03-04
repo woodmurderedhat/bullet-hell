@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://woodmurderedhat.github.io/bullet-hell/sitemap.xml
