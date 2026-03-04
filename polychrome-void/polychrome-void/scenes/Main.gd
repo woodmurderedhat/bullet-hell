@@ -105,6 +105,8 @@ func _start_run() -> void:
 	_apply_loadout_to_player()
 	_apply_daily_modifier_to_player()
 	_player.stats.current_hp = _player.stats.max_hp
+	_player.refresh_stats()
+	_log_player_run_stats()
 	_player.position = Vector2(640.0, 360.0)
 	_player.visible = true
 	_player.set_gameplay_input_enabled(true)
@@ -365,19 +367,26 @@ func _apply_saved_input_bindings() -> void:
 
 func _apply_loadout_to_player() -> void:
 	var loadout: int = int(SaveService.get_save("selected_loadout", 0))
+	var hp_scale: float = 1.0
+	var fire_rate_scale: float = 1.0
+	var speed_scale: float = 1.0
+
 	match loadout:
 		1: # Striker
-			_player.stats.max_hp = 90.0
-			_player.stats.current_hp = 90.0
-			_player.stats.fire_rate = 9.5
-			_player.stats.speed = 235.0
+			hp_scale = 15.0
+			fire_rate_scale = 9.5
+			speed_scale = 2.1363636
 		2: # Tank
-			_player.stats.max_hp = 130.0
-			_player.stats.current_hp = 130.0
-			_player.stats.fire_rate = 7.0
-			_player.stats.speed = 205.0
+			hp_scale = 21.6666667
+			fire_rate_scale = 7.0
+			speed_scale = 1.8636364
 		_:
 			pass
+
+	_player.stats.max_hp *= hp_scale
+	_player.stats.current_hp = _player.stats.max_hp
+	_player.stats.fire_rate *= fire_rate_scale
+	_player.stats.speed *= speed_scale
 
 
 func _apply_daily_modifier_to_player() -> void:
@@ -393,3 +402,32 @@ func _apply_daily_modifier_to_player() -> void:
 			_player.stats.speed *= 1.10
 		2:
 			_player.stats.bullet_damage *= 1.12
+
+
+func _log_player_run_stats() -> void:
+	var loadout_idx: int = int(SaveService.get_save("selected_loadout", 0))
+	var loadout_name: String = _loadout_name(loadout_idx)
+	var daily_modifier_id: String = String(SaveService.get_save("daily_modifier_id", "daily_0"))
+	var effective_max_hp: float = _player.effective_max_hp()
+	var effective_speed: float = _modifier_component.get_stat(_player.stats.speed, &"speed")
+
+	print(
+		"Run stats | loadout=%s daily=%s base_hp=%.2f effective_hp=%.2f base_speed=%.2f effective_speed=%.2f" % [
+			loadout_name,
+			daily_modifier_id,
+			_player.stats.max_hp,
+			effective_max_hp,
+			_player.stats.speed,
+			effective_speed,
+		]
+	)
+
+
+func _loadout_name(loadout: int) -> String:
+	match loadout:
+		1:
+			return "Striker"
+		2:
+			return "Tank"
+		_:
+			return "Balanced"
