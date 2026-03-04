@@ -58,6 +58,12 @@ func unregister_enemy(enemy: Node) -> void:
 	_enemies.erase(enemy)
 
 
+## Force-clear all enemy tracking state (used during run/wave transitions).
+func clear_enemies() -> void:
+	_enemies.clear()
+	_contact_next_hit_time.clear()
+
+
 ## Allow Player to update the damage value used for bullet_hit_enemy signals.
 func set_player_damage(damage: float) -> void:
 	_player_damage = damage
@@ -313,7 +319,7 @@ func _trigger_stack(trigger_id: StringName) -> int:
 
 
 func _on_wave_complete(_arena_index: int) -> void:
-	_contact_next_hit_time.clear()
+	clear_enemies()
 
 
 func _on_enemy_died(enemy_id: int, _position: Vector2, _score: int) -> void:

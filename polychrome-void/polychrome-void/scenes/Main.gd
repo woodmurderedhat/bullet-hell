@@ -238,6 +238,7 @@ func _on_score_changed(new_score: int) -> void:
 func _on_wave_complete(_arena_index: int) -> void:
 	if not _run_active:
 		return
+	_clear_arena_entities()
 
 	var endless_mode: bool = bool(SaveService.get_save("endless_mode", false))
 	var standard_clear_levels: int = SpawnDirector.total_levels_through_arena(STANDARD_CLEAR_ARENAS)
@@ -253,7 +254,7 @@ func _end_run(won: bool) -> void:
 		return
 	_run_active = false
 	_set_run_systems_active(false)
-	_bullet_manager.clear_all()
+	_clear_arena_entities()
 	TelemetryService.end_run()
 	AudioManager.stop_music()
 
@@ -307,7 +308,7 @@ func _return_to_meta_menu() -> void:
 	_run_active = false
 	_set_run_systems_active(false)
 	_arena_backdrop.visible = false
-	_bullet_manager.clear_all()
+	_clear_arena_entities()
 	AudioManager.stop_music()
 	_run_menu.hide_all()
 	_meta_menu.refresh_menu()
@@ -316,7 +317,13 @@ func _return_to_meta_menu() -> void:
 
 func _restart_run() -> void:
 	_run_menu.hide_all()
+	_clear_arena_entities()
 	_start_run()
+
+
+func _clear_arena_entities() -> void:
+	_bullet_manager.clear_all()
+	_spawn_director.clear_active_entities()
 
 
 func _on_tutorial_pressed() -> void:

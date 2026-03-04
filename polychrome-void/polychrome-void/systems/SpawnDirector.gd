@@ -110,11 +110,36 @@ func initialise(player: Node2D, bm: BulletManager, cs: CollisionSystem, root: No
 func start_run() -> void:
 	arena_index = 0
 	_next_enemy_id = 0
+	clear_active_entities()
 	if _swarm_director != null:
 		_swarm_director.arena_min = arena_min
 		_swarm_director.arena_max = arena_max
 		_swarm_director.reset()
 	_start_wave()
+
+
+## Clears all active spawned enemies/bosses and resets per-wave runtime state.
+func clear_active_entities() -> void:
+	_wave_active = false
+	_alive_enemies = 0
+	_spawned_in_wave = 0
+	_spawn_timer = 0.0
+	_current_config = null
+	_wave_swarm_next_slot.clear()
+	_wave_swarm_group_target_counts.clear()
+
+	if _swarm_director != null:
+		_swarm_director.clear_wave()
+
+	if _collision_system != null and _collision_system.has_method("clear_enemies"):
+		_collision_system.call("clear_enemies")
+
+	if _scene_root == null:
+		return
+
+	for child: Node in _scene_root.get_children():
+		if child is Enemy or child is Boss:
+			child.queue_free()
 
 
 func _process(delta: float) -> void:
