@@ -161,8 +161,13 @@ func _on_telemetry_updated(snapshot: Dictionary) -> void:
 	var damage_taken: float = float(snapshot.get("damage_taken", 0.0))
 	var damage_dealt: float = float(snapshot.get("damage_dealt", 0.0))
 	var upgrades_chosen: int = int(snapshot.get("upgrades_chosen", 0))
+	var collision_ms: float = float(snapshot.get("collision_process_ms", 0.0))
+	var resolved_targets: int = int(snapshot.get("collision_resolved_targets", 0))
+	var queued_events: int = int(snapshot.get("collision_queued_damage_events", 0))
+	var player_active_bullets: int = int(snapshot.get("player_bullets_active", 0))
+	var player_spawn_failures: int = int(snapshot.get("player_spawn_failures", 0))
 
-	_telemetry_label.text = "FPS %.1f | AVG %.1f | MIN %.1f\nT %.1fs  K %d  U %d\nDEAL %.0f  TAKE %.0f" % [
+	_telemetry_label.text = "FPS %.1f | AVG %.1f | MIN %.1f\nT %.1fs  K %d  U %d\nDEAL %.0f  TAKE %.0f\nCOL %.2fms  Q %d  R %d\nPB %d  SF %d" % [
 		fps_cur,
 		fps_avg,
 		fps_min,
@@ -171,4 +176,9 @@ func _on_telemetry_updated(snapshot: Dictionary) -> void:
 		upgrades_chosen,
 		damage_dealt,
 		damage_taken,
+		collision_ms,
+		queued_events,
+		resolved_targets,
+		player_active_bullets,
+		player_spawn_failures,
 	]

@@ -25,6 +25,8 @@ var _accum_frames: int = 0
 var _accum_fps_sum: float = 0.0
 
 var _overlay_enabled: bool = true
+var _collision_system: Node = null
+var _bullet_manager: Node = null
 
 
 func _ready() -> void:
@@ -90,8 +92,13 @@ func is_overlay_enabled() -> bool:
 	return _overlay_enabled
 
 
+func set_perf_sources(collision_system: Node, bullet_manager: Node) -> void:
+	_collision_system = collision_system
+	_bullet_manager = bullet_manager
+
+
 func get_snapshot() -> Dictionary:
-	return {
+	var snapshot: Dictionary = {
 		"session_active": _session_active,
 		"session_time": _session_time,
 		"run_count": _run_count,
@@ -105,6 +112,18 @@ func get_snapshot() -> Dictionary:
 		"fps_max": _fps_max,
 		"overlay_enabled": _overlay_enabled,
 	}
+
+	if _collision_system != null and _collision_system.has_method("get_perf_snapshot"):
+		var collision_perf: Variant = _collision_system.call("get_perf_snapshot")
+		if collision_perf is Dictionary:
+			snapshot.merge(collision_perf, true)
+
+	if _bullet_manager != null and _bullet_manager.has_method("get_perf_snapshot"):
+		var bullet_perf: Variant = _bullet_manager.call("get_perf_snapshot")
+		if bullet_perf is Dictionary:
+			snapshot.merge(bullet_perf, true)
+
+	return snapshot
 
 
 func _subscribe_events() -> void:

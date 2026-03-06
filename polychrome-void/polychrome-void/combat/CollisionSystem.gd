@@ -9,6 +9,7 @@ const PLAYER_RADIUS: float = 25.0
 const SECONDARY_DAMAGE_SCALE: float = 0.65
 const SPLIT_ARC_DEGREES: float = 18.0
 const SPLIT_MAX_CHILDREN: int = 6
+const SPLIT_FREE_SLOT_RESERVE: int = 48
 const CHAIN_BASE_RADIUS: float = 120.0
 const PULSE_BASE_RADIUS: float = 56.0
 const CONTACT_TICK_SECONDS: float = 0.35
@@ -20,6 +21,7 @@ var _player: Node2D
 ## Array of Enemy/Boss nodes — untyped to allow duck-typed property access
 ## (both expose .position, .collision_radius, and .enemy_id as plain vars).
 var _enemies: Array = []
+var _enemy_by_id: Dictionary = {}
 
 var _player_damage: float = 10.0  # Updated by Player via set_player_damage().
 var _enemy_damage_scale: float = 1.0
@@ -27,6 +29,17 @@ var _boss_damage_scale: float = 1.0
 var _modifier: ModifierComponent = null
 var _shield_system: Node2D = null
 var _contact_next_hit_time: Dictionary = {}
+var _pending_enemy_damage: Dictionary = {}
+var _shield_can_intercept_enemy_bullet: bool = false
+var _shield_can_apply_aura_contact: bool = false
+
+var _perf_last_process_ms: float = 0.0
+var _perf_last_enemy_bullet_checks: int = 0
+var _perf_last_player_bullet_checks: int = 0
+var _perf_last_enemy_overlap_checks: int = 0
+var _perf_last_queued_events: int = 0
+var _perf_last_resolved_targets: int = 0
+var _perf_last_resolved_damage: float = 0.0
 
 
 func _ready() -> void:
@@ -45,23 +58,34 @@ func initialise(
 	_player = player
 	_modifier = modifier
 	_shield_system = shield_system
+	_shield_can_intercept_enemy_bullet = _shield_system != null and _shield_system.has_method("try_intercept_enemy_bullet")
+	_shield_can_apply_aura_contact = _shield_system != null and _shield_system.has_method("try_apply_aura_contact")
 
 
 ## Register an enemy so its position is checked against player bullets.
 func register_enemy(enemy: Node) -> void:
 	if not _enemies.has(enemy):
 		_enemies.append(enemy)
+	if enemy != null and enemy.has_method("get"):
+		var enemy_id: int = int(enemy.get("enemy_id"))
+		_enemy_by_id[enemy_id] = enemy
 
 
 ## Unregister a dead or removed enemy.
 func unregister_enemy(enemy: Node) -> void:
 	_enemies.erase(enemy)
+	if enemy != null and enemy.has_method("get"):
+		var enemy_id: int = int(enemy.get("enemy_id"))
+		if _enemy_by_id.has(enemy_id):
+			_enemy_by_id.erase(enemy_id)
 
 
 ## Force-clear all enemy tracking state (used during run/wave transitions).
 func clear_enemies() -> void:
 	_enemies.clear()
+	_enemy_by_id.clear()
 	_contact_next_hit_time.clear()
+	_pending_enemy_damage.clear()
 
 
 ## Allow Player to update the damage value used for bullet_hit_enemy signals.
@@ -80,9 +104,18 @@ func set_boss_damage_scale(scale: float) -> void:
 func _process(delta: float) -> void:
 	if _bullet_manager == null or _player == null:
 		return
+	var start_us: int = Time.get_ticks_usec()
+	_perf_last_enemy_bullet_checks = 0
+	_perf_last_player_bullet_checks = 0
+	_perf_last_enemy_overlap_checks = 0
+	_perf_last_queued_events = 0
+	_perf_last_resolved_targets = 0
+	_perf_last_resolved_damage = 0.0
 	_check_enemy_bullets_vs_player()
 	_check_enemy_contact_vs_player(delta)
 	_check_player_bullets_vs_enemies()
+	_flush_pending_enemy_damage()
+	_perf_last_process_ms = float(Time.get_ticks_usec() - start_us) * 0.001
 
 
 ## Check all active enemy bullets against the player's position.
@@ -98,13 +131,14 @@ func _check_enemy_bullets_vs_player() -> void:
 	var count: int = BulletManager.MAX_BULLETS
 
 	for i: int in range(count):
+		_perf_last_enemy_bullet_checks += 1
 		var base: int = i * SLOT
 		if pool[base + 5] == 0.0:
 			continue
 
 		var bullet_pos: Vector2 = Vector2(pool[base + 0], pool[base + 1])
 		var bullet_vel: Vector2 = Vector2(pool[base + 2], pool[base + 3])
-		if _shield_system != null and _shield_system.has_method("try_intercept_enemy_bullet") and bool(_shield_system.call("try_intercept_enemy_bullet", bullet_pos, bullet_vel)):
+		if _shield_can_intercept_enemy_bullet and bool(_shield_system.call("try_intercept_enemy_bullet", bullet_pos, bullet_vel)):
 			_bullet_manager.deactivate_enemy_bullet(i)
 			continue
 
@@ -132,7 +166,7 @@ func _check_enemy_contact_vs_player(_delta: float) -> void:
 		if not is_instance_valid(enemy):
 			continue
 
-		if _shield_system != null and _shield_system.has_method("try_apply_aura_contact"):
+		if _shield_can_apply_aura_contact:
 			_shield_system.call("try_apply_aura_contact", enemy, now)
 
 		var combined_r: float = PLAYER_RADIUS + float(enemy.collision_radius)
@@ -157,11 +191,20 @@ func _check_enemy_contact_vs_player(_delta: float) -> void:
 func _check_player_bullets_vs_enemies() -> void:
 	if _enemies.is_empty():
 		return
+	_pending_enemy_damage.clear()
+
+	var crit_stacks: int = _trigger_stack(&"crit_10")
+	var crit_has_double: bool = _trigger_stack(&"crit_multiplier_2x") > 0
+	var split_stacks: int = _trigger_stack(&"split_on_hit")
+	var pierce_stacks: int = _trigger_stack(&"pierce")
+	var chain_stacks: int = _trigger_stack(&"chain_lightning")
+	var pulse_stacks: int = _trigger_stack(&"pulse_aoe")
 
 	var pool: PackedFloat32Array = _bullet_manager.get_player_pool()
 	var count: int = BulletManager.MAX_BULLETS
 
 	for i: int in range(count):
+		_perf_last_player_bullet_checks += 1
 		var base: int = i * SLOT
 		if pool[base + 5] == 0.0:
 			continue
@@ -170,6 +213,7 @@ func _check_player_bullets_vs_enemies() -> void:
 		var bullet_pos: Vector2 = Vector2(bx, by)
 
 		for enemy in _enemies:
+			_perf_last_enemy_overlap_checks += 1
 			if not is_instance_valid(enemy):
 				continue
 			var er_sq: float = float(enemy.collision_radius) * float(enemy.collision_radius)
@@ -177,37 +221,35 @@ func _check_player_bullets_vs_enemies() -> void:
 			var dy: float = by - float(enemy.position.y)
 			if dx * dx + dy * dy < er_sq:
 				var damage: float = _player_damage * _bullet_manager.get_player_bullet_damage_scale(i)
-				damage = _apply_crit(damage)
-				EventBus.bullet_hit_enemy.emit(int(enemy.enemy_id), damage)
+				damage = _apply_crit(damage, crit_stacks, crit_has_double)
+				_queue_enemy_damage(int(enemy.enemy_id), damage)
 
 				var should_deactivate: bool = true
-				if _trigger_stack(&"split_on_hit") > 0:
-					_spawn_split_children(i, bullet_pos)
+				if split_stacks > 0:
+					_spawn_split_children(i, bullet_pos, split_stacks)
 					should_deactivate = true
-				elif _trigger_stack(&"pierce") > 0:
+				elif pierce_stacks > 0:
 					should_deactivate = false
 
-				_apply_chain_lightning(enemy, damage)
-				_apply_pulse_aoe(enemy, damage)
+				_apply_chain_lightning(enemy, damage, chain_stacks)
+				_apply_pulse_aoe(enemy, damage, pulse_stacks)
 
 				if should_deactivate:
 					_bullet_manager.deactivate_player_bullet(i)
 				break  # One bullet hits one enemy per frame.
 
 
-func _apply_crit(base_damage: float) -> float:
-	var crit_stacks: int = _trigger_stack(&"crit_10")
+func _apply_crit(base_damage: float, crit_stacks: int, crit_has_double: bool) -> float:
 	if crit_stacks <= 0:
 		return base_damage
 	var crit_chance: float = minf(0.1 * float(crit_stacks), 0.95)
 	if RandomService.next_float() >= crit_chance:
 		return base_damage
-	var crit_multiplier: float = 2.0 if _trigger_stack(&"crit_multiplier_2x") > 0 else 1.5
+	var crit_multiplier: float = 2.0 if crit_has_double else 1.5
 	return base_damage * crit_multiplier
 
 
-func _spawn_split_children(slot: int, hit_pos: Vector2) -> void:
-	var split_stacks: int = _trigger_stack(&"split_on_hit")
+func _spawn_split_children(slot: int, hit_pos: Vector2, split_stacks: int) -> void:
 	if split_stacks <= 0:
 		return
 
@@ -220,6 +262,11 @@ func _spawn_split_children(slot: int, hit_pos: Vector2) -> void:
 		return
 
 	var child_count: int = mini(2 + split_stacks, SPLIT_MAX_CHILDREN)
+	var free_slots: int = _bullet_manager.get_player_free_slot_count()
+	var split_capacity: int = maxi(0, free_slots - SPLIT_FREE_SLOT_RESERVE)
+	child_count = mini(child_count, split_capacity)
+	if child_count <= 0:
+		return
 	var speed: float = velocity.length()
 	var forward: Vector2 = velocity.normalized()
 	var damage_scale: float = _bullet_manager.get_player_bullet_damage_scale(slot) * SECONDARY_DAMAGE_SCALE
@@ -259,8 +306,7 @@ func _spawn_split_children(slot: int, hit_pos: Vector2) -> void:
 		)
 
 
-func _apply_chain_lightning(primary_enemy: Variant, source_damage: float) -> void:
-	var chain_stacks: int = _trigger_stack(&"chain_lightning")
+func _apply_chain_lightning(primary_enemy: Variant, source_damage: float, chain_stacks: int) -> void:
 	if chain_stacks <= 0:
 		return
 
@@ -268,7 +314,8 @@ func _apply_chain_lightning(primary_enemy: Variant, source_damage: float) -> voi
 	var chain_radius: float = CHAIN_BASE_RADIUS + float(chain_stacks - 1) * 16.0
 	var chain_radius_sq: float = chain_radius * chain_radius
 	var current_pos: Vector2 = Vector2(primary_enemy.position)
-	var used_ids: Array[int] = [int(primary_enemy.enemy_id)]
+	var used_ids: Dictionary = {}
+	used_ids[int(primary_enemy.enemy_id)] = true
 
 	for _jump: int in range(jumps):
 		var next_enemy: Variant = null
@@ -288,13 +335,12 @@ func _apply_chain_lightning(primary_enemy: Variant, source_damage: float) -> voi
 		if next_enemy == null:
 			break
 
-		used_ids.append(int(next_enemy.enemy_id))
+		used_ids[int(next_enemy.enemy_id)] = true
 		current_pos = Vector2(next_enemy.position)
-		EventBus.bullet_hit_enemy.emit(int(next_enemy.enemy_id), source_damage * SECONDARY_DAMAGE_SCALE)
+		_queue_enemy_damage(int(next_enemy.enemy_id), source_damage * SECONDARY_DAMAGE_SCALE)
 
 
-func _apply_pulse_aoe(primary_enemy: Variant, source_damage: float) -> void:
-	var pulse_stacks: int = _trigger_stack(&"pulse_aoe")
+func _apply_pulse_aoe(primary_enemy: Variant, source_damage: float, pulse_stacks: int) -> void:
 	if pulse_stacks <= 0:
 		return
 
@@ -309,7 +355,50 @@ func _apply_pulse_aoe(primary_enemy: Variant, source_damage: float) -> void:
 			continue
 		var delta: Vector2 = Vector2(enemy.position) - center
 		if delta.length_squared() <= radius_sq:
-			EventBus.bullet_hit_enemy.emit(int(enemy.enemy_id), source_damage * SECONDARY_DAMAGE_SCALE)
+			_queue_enemy_damage(int(enemy.enemy_id), source_damage * SECONDARY_DAMAGE_SCALE)
+
+
+func _queue_enemy_damage(enemy_id: int, damage: float) -> void:
+	if damage <= 0.0:
+		return
+	_perf_last_queued_events += 1
+	var existing: float = float(_pending_enemy_damage.get(enemy_id, 0.0))
+	_pending_enemy_damage[enemy_id] = existing + damage
+
+
+func _flush_pending_enemy_damage() -> void:
+	if _pending_enemy_damage.is_empty():
+		return
+	for enemy_id_variant in _pending_enemy_damage.keys():
+		var enemy_id: int = int(enemy_id_variant)
+		var damage: float = float(_pending_enemy_damage[enemy_id_variant])
+		if damage <= 0.0:
+			continue
+		_perf_last_resolved_targets += 1
+		_perf_last_resolved_damage += damage
+
+		var enemy: Variant = _enemy_by_id.get(enemy_id, null)
+		if enemy != null and is_instance_valid(enemy):
+			if enemy is Enemy:
+				(enemy as Enemy).apply_damage(damage)
+			elif enemy is Boss:
+				(enemy as Boss).apply_damage(damage)
+
+		# Keep batched event emission for telemetry and observers.
+		EventBus.bullet_hit_enemy.emit(enemy_id, damage)
+	_pending_enemy_damage.clear()
+
+
+func get_perf_snapshot() -> Dictionary:
+	return {
+		"collision_process_ms": _perf_last_process_ms,
+		"collision_enemy_bullet_checks": _perf_last_enemy_bullet_checks,
+		"collision_player_bullet_checks": _perf_last_player_bullet_checks,
+		"collision_enemy_overlap_checks": _perf_last_enemy_overlap_checks,
+		"collision_queued_damage_events": _perf_last_queued_events,
+		"collision_resolved_targets": _perf_last_resolved_targets,
+		"collision_resolved_damage": _perf_last_resolved_damage,
+	}
 
 
 func _trigger_stack(trigger_id: StringName) -> int:
@@ -323,6 +412,7 @@ func _on_wave_complete(_arena_index: int) -> void:
 
 
 func _on_enemy_died(enemy_id: int, _position: Vector2, _score: int) -> void:
+	_enemy_by_id.erase(enemy_id)
 	_contact_next_hit_time.erase(enemy_id)
 	for idx: int in range(_enemies.size() - 1, -1, -1):
 		var enemy: Variant = _enemies[idx]

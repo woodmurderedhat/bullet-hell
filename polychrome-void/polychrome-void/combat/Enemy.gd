@@ -71,7 +71,7 @@ func setup(
 
 
 func _ready() -> void:
-	EventBus.bullet_hit_enemy.connect(_on_bullet_hit_enemy)
+	pass
 
 
 func _process(delta: float) -> void:
@@ -275,6 +275,12 @@ func _draw() -> void:
 
 func _on_bullet_hit_enemy(id: int, damage: float) -> void:
 	if id != enemy_id or _dead:
+		return
+	apply_damage(damage)
+
+
+func apply_damage(damage: float) -> void:
+	if _dead or damage <= 0.0:
 		return
 	_current_hp -= damage
 	if _current_hp <= 0.0:

@@ -11,7 +11,7 @@ class PlayerStats:
 	var current_hp: float    = 10.0
 	## Base values — used as input to ModifierComponent.get_stat().
 	var speed: float         = 110.0
-	var fire_rate: float     = 10.0    ## Bullets per second.
+	var fire_rate: float     = 3.0    ## Bullets per second.
 	var bullet_damage: float = 10.0
 	var bullet_speed: float  = 480.0
 
@@ -180,21 +180,46 @@ func _handle_firing(delta: float) -> void:
 		EventBus.player_fired.emit()
 		var dir: Vector2 = _gun_world_dir
 		var eff_bspeed: float = _effective_stat(stats.bullet_speed, &"bullet_speed")
-		_fire_primary(dir, eff_bspeed, 1.0)
-
+		var split_hit_stacks: int = _trigger_stack(&"split_on_hit")
+		var split_fire_stacks: int = _trigger_stack(&"split_on_fire")
+		var wave_sine_stacks: int = _trigger_stack(&"wave_sine")
 		var fan_stacks: int = _trigger_stack(&"wave_fan")
-		if fan_stacks > 0:
-			_fire_fan(dir, eff_bspeed, fan_stacks)
-
 		var pulse_stacks: int = _trigger_stack(&"wave_pulse")
+		var chain_stacks: int = _trigger_stack(&"chain_lightning")
+		var pulse_aoe_stacks: int = _trigger_stack(&"pulse_aoe")
+		var pierce_stacks: int = _trigger_stack(&"pierce")
+		var chaos_stacks: int = _trigger_stack(&"random_direction")
+		var split_budget: int = _compute_split_budget_from_stacks(
+			split_hit_stacks,
+			split_fire_stacks,
+			wave_sine_stacks,
+			fan_stacks,
+			pulse_stacks,
+			chain_stacks,
+			pulse_aoe_stacks,
+			pierce_stacks
+		)
+
+		_fire_primary(dir, eff_bspeed, 1.0, split_fire_stacks, wave_sine_stacks, chaos_stacks, split_budget)
+
+		if fan_stacks > 0:
+			_fire_fan(dir, eff_bspeed, fan_stacks, wave_sine_stacks, chaos_stacks, split_budget)
+
 		if pulse_stacks > 0:
-			_fire_pulse_ring(eff_bspeed, pulse_stacks)
+			_fire_pulse_ring(eff_bspeed, pulse_stacks, wave_sine_stacks, chaos_stacks, split_budget)
 
 
-func _fire_primary(dir: Vector2, bullet_speed: float, damage_scale: float) -> void:
-	_spawn_weapon_bullet(dir, bullet_speed, damage_scale, 0)
+func _fire_primary(
+	dir: Vector2,
+	bullet_speed: float,
+	damage_scale: float,
+	split_fire_stacks: int,
+	wave_sine_stacks: int,
+	chaos_stacks: int,
+	split_budget: int
+) -> void:
+	_spawn_weapon_bullet(dir, bullet_speed, damage_scale, 0, wave_sine_stacks, chaos_stacks, split_budget)
 
-	var split_fire_stacks: int = _trigger_stack(&"split_on_fire")
 	if split_fire_stacks <= 0:
 		return
 
@@ -202,14 +227,21 @@ func _fire_primary(dir: Vector2, bullet_speed: float, damage_scale: float) -> vo
 	for i: int in range(side_pairs):
 		var t: float = float(i + 1)
 		var spread: float = deg_to_rad(SPLIT_FIRE_ARC_DEGREES * t)
-		_spawn_weapon_bullet(dir.rotated(spread), bullet_speed, SECONDARY_DAMAGE_SCALE, 1)
-		_spawn_weapon_bullet(dir.rotated(-spread), bullet_speed, SECONDARY_DAMAGE_SCALE, 1)
+		_spawn_weapon_bullet(dir.rotated(spread), bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget)
+		_spawn_weapon_bullet(dir.rotated(-spread), bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget)
 
 
-func _fire_fan(dir: Vector2, bullet_speed: float, fan_stacks: int) -> void:
+func _fire_fan(
+	dir: Vector2,
+	bullet_speed: float,
+	fan_stacks: int,
+	wave_sine_stacks: int,
+	chaos_stacks: int,
+	split_budget: int
+) -> void:
 	var count: int = mini(FAN_BASE_BULLETS + FAN_BULLETS_PER_STACK * (fan_stacks - 1), FAN_MAX_BULLETS)
 	if count < 2:
-		_spawn_weapon_bullet(dir, bullet_speed, SECONDARY_DAMAGE_SCALE, 1)
+		_spawn_weapon_bullet(dir, bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget)
 		return
 
 	var spread_deg: float = FAN_BASE_SPREAD_DEGREES + float(fan_stacks - 1) * 4.0
@@ -217,10 +249,16 @@ func _fire_fan(dir: Vector2, bullet_speed: float, fan_stacks: int) -> void:
 	for i: int in range(count):
 		var ratio: float = float(i) / float(count - 1)
 		var offset: float = lerpf(-spread_rad, spread_rad, ratio)
-		_spawn_weapon_bullet(dir.rotated(offset), bullet_speed, SECONDARY_DAMAGE_SCALE, 1)
+		_spawn_weapon_bullet(dir.rotated(offset), bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget)
 
 
-func _fire_pulse_ring(bullet_speed: float, pulse_stacks: int) -> void:
+func _fire_pulse_ring(
+	bullet_speed: float,
+	pulse_stacks: int,
+	wave_sine_stacks: int,
+	chaos_stacks: int,
+	split_budget: int
+) -> void:
 	var count: int = mini(PULSE_BASE_BULLETS + PULSE_BULLETS_PER_STACK * (pulse_stacks - 1), PULSE_MAX_BULLETS)
 	if count <= 0:
 		return
@@ -232,17 +270,19 @@ func _fire_pulse_ring(bullet_speed: float, pulse_stacks: int) -> void:
 	for i: int in range(count):
 		var angle: float = rotation_offset + TAU * float(i) / float(count)
 		var dir: Vector2 = Vector2.from_angle(angle)
-		_spawn_weapon_bullet(dir, bullet_speed, SECONDARY_DAMAGE_SCALE, 1)
+		_spawn_weapon_bullet(dir, bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget)
 
 
 func _spawn_weapon_bullet(
 	direction: Vector2,
 	bullet_speed: float,
 	damage_scale: float,
-	split_depth: int
+	split_depth: int,
+	wave_stacks: int,
+	chaos_stacks: int,
+	split_budget: int
 ) -> void:
-	var shot_dir: Vector2 = _apply_random_direction(direction)
-	var wave_stacks: int = _trigger_stack(&"wave_sine")
+	var shot_dir: Vector2 = _apply_random_direction(direction, chaos_stacks)
 	var behavior_kind: int = BulletManager.PLAYER_BEHAVIOR_STRAIGHT
 	var wave_amp: float = 0.0
 	var wave_freq: float = 0.0
@@ -253,7 +293,6 @@ func _spawn_weapon_bullet(
 		wave_freq = WAVE_BASE_FREQUENCY + float(wave_stacks - 1)
 		wave_phase = RandomService.next_float() * TAU
 
-	var split_budget: int = _compute_split_budget()
 	_bullet_manager.spawn_player_bullet_advanced(
 		position,
 		shot_dir,
@@ -268,8 +307,7 @@ func _spawn_weapon_bullet(
 	)
 
 
-func _apply_random_direction(direction: Vector2) -> Vector2:
-	var chaos_stacks: int = _trigger_stack(&"random_direction")
+func _apply_random_direction(direction: Vector2, chaos_stacks: int) -> Vector2:
 	if chaos_stacks <= 0:
 		return direction.normalized()
 	var max_spread_deg: float = minf(RANDOM_SPREAD_DEGREES_PER_STACK * float(chaos_stacks), 45.0)
@@ -278,22 +316,28 @@ func _apply_random_direction(direction: Vector2) -> Vector2:
 	return direction.normalized().rotated(angle_offset)
 
 
-func _compute_split_budget() -> int:
-	if _modifier == null:
-		return 0
-	var split_hit_stacks: int = _modifier.get_trigger_stack(&"split_on_hit")
+func _compute_split_budget_from_stacks(
+	split_hit_stacks: int,
+	split_fire_stacks: int,
+	wave_sine_stacks: int,
+	fan_stacks: int,
+	pulse_stacks: int,
+	chain_stacks: int,
+	pulse_aoe_stacks: int,
+	pierce_stacks: int
+) -> int:
 	if split_hit_stacks <= 0:
 		return 0
 
 	var behavior_stacks: int = 0
 	behavior_stacks += split_hit_stacks
-	behavior_stacks += _modifier.get_trigger_stack(&"split_on_fire")
-	behavior_stacks += _modifier.get_trigger_stack(&"wave_sine")
-	behavior_stacks += _modifier.get_trigger_stack(&"wave_fan")
-	behavior_stacks += _modifier.get_trigger_stack(&"wave_pulse")
-	behavior_stacks += _modifier.get_trigger_stack(&"chain_lightning")
-	behavior_stacks += _modifier.get_trigger_stack(&"pulse_aoe")
-	behavior_stacks += _modifier.get_trigger_stack(&"pierce")
+	behavior_stacks += split_fire_stacks
+	behavior_stacks += wave_sine_stacks
+	behavior_stacks += fan_stacks
+	behavior_stacks += pulse_stacks
+	behavior_stacks += chain_stacks
+	behavior_stacks += pulse_aoe_stacks
+	behavior_stacks += pierce_stacks
 
 	return clampi(1 + behavior_stacks / 2, 1, 10)
 

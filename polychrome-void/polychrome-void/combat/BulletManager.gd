@@ -33,8 +33,14 @@ const HIDDEN_POS: Vector2 = Vector2(-9999.0, -9999.0)
 var _player_pool: PackedFloat32Array
 var _enemy_pool: PackedFloat32Array
 
-var _player_next_free: int = 0
-var _enemy_next_free: int = 0
+var _player_free_slots: PackedInt32Array
+var _enemy_free_slots: PackedInt32Array
+var _player_slot_active: PackedInt32Array
+var _enemy_slot_active: PackedInt32Array
+var _player_free_count: int = 0
+var _enemy_free_count: int = 0
+var _player_spawn_failures: int = 0
+var _enemy_spawn_failures: int = 0
 
 var _player_multimesh: MultiMesh
 var _enemy_multimesh: MultiMesh
@@ -105,6 +111,14 @@ func _ready() -> void:
 	_enemy_source_damage.resize(MAX_BULLETS)
 	_enemy_source_is_boss = PackedInt32Array()
 	_enemy_source_is_boss.resize(MAX_BULLETS)
+	_player_free_slots = PackedInt32Array()
+	_player_free_slots.resize(MAX_BULLETS)
+	_enemy_free_slots = PackedInt32Array()
+	_enemy_free_slots.resize(MAX_BULLETS)
+	_player_slot_active = PackedInt32Array()
+	_player_slot_active.resize(MAX_BULLETS)
+	_enemy_slot_active = PackedInt32Array()
+	_enemy_slot_active.resize(MAX_BULLETS)
 
 	# Mark all slots inactive.
 	for i: int in range(MAX_BULLETS):
@@ -127,6 +141,14 @@ func _ready() -> void:
 		_player_damage_scale[i] = 1.0
 		_enemy_source_damage[i] = 1.0
 		_enemy_source_is_boss[i] = 0
+		_player_slot_active[i] = 0
+		_enemy_slot_active[i] = 0
+		# Fill free-list as a stack so slot pop is O(1).
+		_player_free_slots[i] = MAX_BULLETS - 1 - i
+		_enemy_free_slots[i] = MAX_BULLETS - 1 - i
+
+	_player_free_count = MAX_BULLETS
+	_enemy_free_count = MAX_BULLETS
 
 	_player_mmi = _build_multimesh_instance(
 		Vector2(PLAYER_BULLET_HALF_W * 2.0, PLAYER_BULLET_HALF_H * 2.0),
@@ -208,6 +230,7 @@ func spawn_player_bullet_advanced(
 ) -> int:
 	var slot: int = _find_free_player_slot()
 	if slot == -1:
+		_player_spawn_failures += 1
 		return -1
 	var n_dir: Vector2 = dir.normalized()
 	var side: Vector2 = Vector2(-n_dir.y, n_dir.x)
@@ -218,6 +241,7 @@ func spawn_player_bullet_advanced(
 	_player_pool[base + 3] = n_dir.y * speed
 	_player_pool[base + 4] = BULLET_LIFETIME
 	_player_pool[base + 5] = 1.0
+	_player_slot_active[slot] = 1
 
 	_player_behavior_kind[slot] = behavior_kind
 	_player_wave_origin_x[slot] = pos.x
@@ -260,6 +284,7 @@ func spawn_enemy_bullet_colored(
 ) -> void:
 	var slot: int = _find_free_enemy_slot()
 	if slot == -1:
+		_enemy_spawn_failures += 1
 		return
 	var n_dir: Vector2 = dir.normalized()
 	var base: int = slot * SLOT
@@ -269,6 +294,7 @@ func spawn_enemy_bullet_colored(
 	_enemy_pool[base + 3] = n_dir.y * speed
 	_enemy_pool[base + 4] = BULLET_LIFETIME
 	_enemy_pool[base + 5] = 1.0
+	_enemy_slot_active[slot] = 1
 	_enemy_source_damage[slot] = maxf(0.0, base_damage)
 	_enemy_source_is_boss[slot] = 1 if is_boss_source else 0
 	_enemy_multimesh.set_instance_color(slot, bullet_color)
@@ -277,6 +303,8 @@ func spawn_enemy_bullet_colored(
 ## Deactivate a specific player bullet slot (called by CollisionSystem on hit).
 func deactivate_player_bullet(slot: int) -> void:
 	if slot < 0 or slot >= MAX_BULLETS:
+		return
+	if _player_slot_active[slot] == 0:
 		return
 	var base: int = slot * SLOT
 	_player_pool[base + 5] = 0.0
@@ -297,11 +325,17 @@ func deactivate_player_bullet(slot: int) -> void:
 	_player_damage_scale[slot] = 1.0
 	_player_multimesh.set_instance_transform_2d(slot, Transform2D(0.0, HIDDEN_POS))
 	_player_multimesh.set_instance_color(slot, PLAYER_BULLET_COLOR)
+	_player_slot_active[slot] = 0
+	if _player_free_count < MAX_BULLETS:
+		_player_free_slots[_player_free_count] = slot
+		_player_free_count += 1
 
 
 ## Deactivate a specific enemy bullet slot (called by CollisionSystem on hit).
 func deactivate_enemy_bullet(slot: int) -> void:
 	if slot < 0 or slot >= MAX_BULLETS:
+		return
+	if _enemy_slot_active[slot] == 0:
 		return
 	var base: int = slot * SLOT
 	_enemy_pool[base + 5] = 0.0
@@ -309,6 +343,10 @@ func deactivate_enemy_bullet(slot: int) -> void:
 	_enemy_source_is_boss[slot] = 0
 	_enemy_multimesh.set_instance_color(slot, ENEMY_BULLET_COLOR)
 	_enemy_multimesh.set_instance_transform_2d(slot, Transform2D(0.0, HIDDEN_POS))
+	_enemy_slot_active[slot] = 0
+	if _enemy_free_count < MAX_BULLETS:
+		_enemy_free_slots[_enemy_free_count] = slot
+		_enemy_free_count += 1
 
 
 ## Returns a read-only view of the enemy bullet pool for CollisionSystem.
@@ -373,7 +411,7 @@ func is_player_bullet_wave(slot: int) -> bool:
 
 func _process(delta: float) -> void:
 	_update_player_pool(delta)
-	_update_pool(_enemy_pool, _enemy_multimesh, delta)
+	_update_enemy_pool(delta)
 
 
 func _update_player_pool(delta: float) -> void:
@@ -411,55 +449,44 @@ func _update_player_pool(delta: float) -> void:
 		_player_multimesh.set_instance_transform_2d(i, Transform2D(angle, pos))
 
 
-## Core pool update — advances positions, expires old bullets, syncs MultiMesh.
+## Enemy pool update — advances positions, expires old bullets, syncs MultiMesh.
 ## No allocations; all operations on the pre-allocated PackedFloat32Array.
-func _update_pool(pool: PackedFloat32Array, mm: MultiMesh, delta: float) -> void:
+func _update_enemy_pool(delta: float) -> void:
 	for i: int in range(MAX_BULLETS):
 		var base: int = i * SLOT
-		if pool[base + 5] == 0.0:
+		if _enemy_pool[base + 5] == 0.0:
 			continue
 
-		pool[base + 4] -= delta  # Decrement lifetime.
-		if pool[base + 4] <= 0.0:
-			pool[base + 5] = 0.0
-			mm.set_instance_transform_2d(i, Transform2D(0.0, HIDDEN_POS))
+		_enemy_pool[base + 4] -= delta  # Decrement lifetime.
+		if _enemy_pool[base + 4] <= 0.0:
+			deactivate_enemy_bullet(i)
 			continue
 
-		pool[base + 0] += pool[base + 2] * delta  # x += vx * dt
-		pool[base + 1] += pool[base + 3] * delta  # y += vy * dt
+		_enemy_pool[base + 0] += _enemy_pool[base + 2] * delta  # x += vx * dt
+		_enemy_pool[base + 1] += _enemy_pool[base + 3] * delta  # y += vy * dt
 
-		var pos: Vector2 = Vector2(pool[base + 0], pool[base + 1])
+		var pos: Vector2 = Vector2(_enemy_pool[base + 0], _enemy_pool[base + 1])
 
 		# Build transform: rotation aligned to velocity direction.
-		var vel: Vector2 = Vector2(pool[base + 2], pool[base + 3])
+		var vel: Vector2 = Vector2(_enemy_pool[base + 2], _enemy_pool[base + 3])
 		var angle: float = vel.angle()
-		mm.set_instance_transform_2d(i, Transform2D(angle, pos))
+		_enemy_multimesh.set_instance_transform_2d(i, Transform2D(angle, pos))
 
 
-## Scan forward from _player_next_free to find an inactive slot.
+## Pop an inactive player slot from the free-list stack.
 func _find_free_player_slot() -> int:
-	var start: int = _player_next_free
-	for _i: int in range(MAX_BULLETS):
-		var idx: int = (_player_next_free) % MAX_BULLETS
-		_player_next_free = (idx + 1) % MAX_BULLETS
-		if _player_pool[idx * SLOT + 5] == 0.0:
-			return idx
-		if _player_next_free == start:
-			break
-	return -1  # Pool exhausted.
+	if _player_free_count <= 0:
+		return -1
+	_player_free_count -= 1
+	return _player_free_slots[_player_free_count]
 
 
-## Scan forward from _enemy_next_free to find an inactive slot.
+## Pop an inactive enemy slot from the free-list stack.
 func _find_free_enemy_slot() -> int:
-	var start: int = _enemy_next_free
-	for _i: int in range(MAX_BULLETS):
-		var idx: int = (_enemy_next_free) % MAX_BULLETS
-		_enemy_next_free = (idx + 1) % MAX_BULLETS
-		if _enemy_pool[idx * SLOT + 5] == 0.0:
-			return idx
-		if _enemy_next_free == start:
-			break
-	return -1  # Pool exhausted.
+	if _enemy_free_count <= 0:
+		return -1
+	_enemy_free_count -= 1
+	return _enemy_free_slots[_enemy_free_count]
 
 
 ## Clear all active bullets (e.g. on wave transition).
@@ -485,7 +512,34 @@ func clear_all() -> void:
 		_player_damage_scale[i] = 1.0
 		_enemy_source_damage[i] = 1.0
 		_enemy_source_is_boss[i] = 0
+		_player_slot_active[i] = 0
+		_enemy_slot_active[i] = 0
+		_player_free_slots[i] = MAX_BULLETS - 1 - i
+		_enemy_free_slots[i] = MAX_BULLETS - 1 - i
 		_player_multimesh.set_instance_color(i, PLAYER_BULLET_COLOR)
 		_enemy_multimesh.set_instance_color(i, ENEMY_BULLET_COLOR)
 		_player_multimesh.set_instance_transform_2d(i, hidden_xform)
 		_enemy_multimesh.set_instance_transform_2d(i, hidden_xform)
+	_player_free_count = MAX_BULLETS
+	_enemy_free_count = MAX_BULLETS
+	_player_spawn_failures = 0
+	_enemy_spawn_failures = 0
+
+
+func get_player_free_slot_count() -> int:
+	return _player_free_count
+
+
+func get_enemy_free_slot_count() -> int:
+	return _enemy_free_count
+
+
+func get_perf_snapshot() -> Dictionary:
+	return {
+		"player_bullets_active": MAX_BULLETS - _player_free_count,
+		"enemy_bullets_active": MAX_BULLETS - _enemy_free_count,
+		"player_bullet_free_slots": _player_free_count,
+		"enemy_bullet_free_slots": _enemy_free_count,
+		"player_spawn_failures": _player_spawn_failures,
+		"enemy_spawn_failures": _enemy_spawn_failures,
+	}

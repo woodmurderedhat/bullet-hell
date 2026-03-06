@@ -91,14 +91,27 @@ var arena_min: Vector2 = Vector2(40.0, 40.0)
 var arena_max: Vector2 = Vector2(1240.0, 680.0)
 
 var _groups: Dictionary = {}
+var _wave_group_regions: Array[int] = []
+var _wave_origin_region: int = 4
 
 
 func reset() -> void:
 	_groups.clear()
+	_wave_group_regions.clear()
+	_wave_origin_region = 4
 
 
 func clear_wave() -> void:
 	_groups.clear()
+	_wave_group_regions.clear()
+	_wave_origin_region = 4
+
+
+func configure_wave_regions(group_regions: Array[int], origin_region: int) -> void:
+	_wave_group_regions.clear()
+	for region_value: int in group_regions:
+		_wave_group_regions.append(clampi(region_value, 0, 8))
+	_wave_origin_region = clampi(origin_region, 0, 8)
 
 
 func register_enemy(
@@ -128,7 +141,10 @@ func register_enemy(
 func get_spawn_position_for_member(group_id: int, slot_index: int, slot_count: int) -> Vector2:
 	var group: SwarmGroup = _groups.get(group_id, null)
 	if group == null:
-		var center: Vector2 = _region_center(0)
+		var region_index: int = _wave_origin_region
+		if group_id >= 0 and group_id < _wave_group_regions.size():
+			region_index = _wave_group_regions[group_id]
+		var center: Vector2 = _region_center(region_index)
 		return center + _slot_base(slot_index, slot_count, 54.0, 40.0)
 	return group.anchor + _slot_base(slot_index, slot_count, group.lane_width, group.row_height)
 
@@ -159,7 +175,10 @@ func _ensure_group(group_id: int, pattern_id: int, switch_interval: float, arena
 	group.group_id = group_id
 	group.pattern_id = clampi(pattern_id, 0, PATTERN_COUNT - 1)
 	group.aggression = aggression
-	group.region_index = posmod(group_id, 9)
+	if group_id >= 0 and group_id < _wave_group_regions.size():
+		group.region_index = _wave_group_regions[group_id]
+	else:
+		group.region_index = posmod(_wave_origin_region + group_id * 3, 9)
 	group.switch_interval = maxf(1.9, switch_interval * lerpf(1.22, 0.70, aggression))
 	group.switch_timer = 0.0
 	group.elapsed = 0.0

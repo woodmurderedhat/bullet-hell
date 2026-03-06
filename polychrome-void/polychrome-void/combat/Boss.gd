@@ -64,7 +64,6 @@ func setup_boss(
 
 
 func _ready() -> void:
-	EventBus.bullet_hit_enemy.connect(_on_bullet_hit_enemy)
 	_enter_phase(0)
 
 
@@ -125,6 +124,12 @@ func _draw() -> void:
 
 func _on_bullet_hit_enemy(id: int, damage: float) -> void:
 	if id != enemy_id or _dead:
+		return
+	apply_damage(damage)
+
+
+func apply_damage(damage: float) -> void:
+	if _dead or damage <= 0.0:
 		return
 	_current_hp -= damage
 	_check_phase_transition()

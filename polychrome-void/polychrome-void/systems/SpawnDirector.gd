@@ -9,18 +9,34 @@ extends Node
 class WaveConfig:
 	var enemy_count: int = 5
 	var enemy_resource: EnemyResource = null
-	var spawn_interval: float = 1.2  ## Seconds between individual enemy spawns.
+	var spawn_interval: float = 0.2  ## Seconds between individual enemy spawns.
 	var boss_wave: bool = false
 	var boss_resource: BossResource = null
 	var swarm_enabled: bool = true
 	var swarm_pattern_id: int = 0
 	var swarm_group_count: int = 1
 	var swarm_region_switch_interval: float = 6.0
+	var spawn_mix_mode: int = 0
+	var edge_inject_ratio: float = 0.0
+	var origin_region: int = 4
+	var edge_bias_side: int = -1
+	var min_spawn_distance_to_player: float = 180.0
+	var side_repeat_cooldown: int = 2
+	var swarm_start_regions: Array[int] = []
+	var spawn_interval_jitter: float = 0.0
 
 const BOSS_LEVEL_INTERVAL: int = 5
 const BASE_LEVELS_PER_ARENA: int = 25
 const LEVEL_GROWTH_PER_ARENA: int = 10
 const SWARM_PATTERN_COUNT: int = 25
+const SPAWN_MODE_SWARM: int = 0
+const SPAWN_MODE_MIXED: int = 1
+const SPAWN_MODE_EDGE: int = 2
+
+const EDGE_TOP: int = 0
+const EDGE_BOTTOM: int = 1
+const EDGE_LEFT: int = 2
+const EDGE_RIGHT: int = 3
 
 ## Preloaded resources.
 const RES_BASIC_SQUARE   := preload("res://data/enemies/basic_square.tres")
@@ -61,6 +77,7 @@ var _spawned_in_wave: int = 0
 var _spawn_timer: float = 0.0
 var _wave_active: bool = false
 var _next_enemy_id: int = 0
+var _next_spawn_interval: float = 0.0
 var _base_enemy_roster: Array[EnemyResource] = []
 var _enemy_roster: Array[EnemyResource] = []
 var _base_boss_roster: Array[BossResource] = []
@@ -76,6 +93,10 @@ var _extra_enemy_paths: Array[String] = []
 var _extra_boss_paths: Array[String] = []
 var _wave_swarm_next_slot: Array[int] = []
 var _wave_swarm_group_target_counts: Array[int] = []
+var _recent_swarm_patterns: Array[int] = []
+var _recent_origin_regions: Array[int] = []
+var _recent_spawn_mix_modes: Array[int] = []
+var _recent_edge_sides: Array[int] = []
 
 
 ## Call from Main once all dependencies are available.
@@ -110,6 +131,10 @@ func initialise(player: Node2D, bm: BulletManager, cs: CollisionSystem, root: No
 func start_run() -> void:
 	arena_index = 0
 	_next_enemy_id = 0
+	_recent_swarm_patterns.clear()
+	_recent_origin_regions.clear()
+	_recent_spawn_mix_modes.clear()
+	_recent_edge_sides.clear()
 	clear_active_entities()
 	if _swarm_director != null:
 		_swarm_director.arena_min = arena_min
@@ -124,6 +149,7 @@ func clear_active_entities() -> void:
 	_alive_enemies = 0
 	_spawned_in_wave = 0
 	_spawn_timer = 0.0
+	_next_spawn_interval = 0.0
 	_current_config = null
 	_wave_swarm_next_slot.clear()
 	_wave_swarm_group_target_counts.clear()
@@ -151,9 +177,10 @@ func _process(delta: float) -> void:
 		return  # All queued — waiting for kills.
 
 	_spawn_timer += delta
-	if _spawn_timer >= _current_config.spawn_interval:
-		_spawn_timer -= _current_config.spawn_interval
+	if _spawn_timer >= _next_spawn_interval:
+		_spawn_timer -= _next_spawn_interval
 		_spawn_next_enemy()
+		_next_spawn_interval = _roll_next_spawn_interval()
 
 
 func _start_wave() -> void:
@@ -163,6 +190,7 @@ func _start_wave() -> void:
 	_wave_active = true
 
 	_current_config = _build_wave_config()
+	_next_spawn_interval = _roll_next_spawn_interval()
 	_initialise_swarm_wave_state(_current_config)
 	if _current_config.boss_wave:
 		EventBus.boss_wave_started.emit(arena_index)
@@ -178,8 +206,11 @@ func _build_wave_config() -> WaveConfig:
 		cfg.boss_resource = _pick_boss_for_arena(arena_index)
 		cfg.spawn_interval = 0.0
 		cfg.swarm_enabled = false
+		cfg.spawn_mix_mode = SPAWN_MODE_EDGE
 	else:
 		var swarm_aggression: float = _swarm_aggression_for_arena(arena_index)
+		cfg.origin_region = _pick_origin_region_for_wave()
+		cfg.edge_bias_side = _pick_edge_bias_for_origin(cfg.origin_region)
 		# Scale enemy count and mix patterns as arenas progress.
 		cfg.enemy_count = maxi(2, 4 + arena_index * 2 + _enemy_count_add)
 		cfg.spawn_interval = maxf(0.25, (1.2 - arena_index * 0.05) * _spawn_interval_scale)
@@ -188,6 +219,12 @@ func _build_wave_config() -> WaveConfig:
 		cfg.swarm_pattern_id = _pick_swarm_pattern_for_wave()
 		cfg.swarm_group_count = clampi(1 + int(float(cfg.enemy_count) / 8.0) + int(floor(swarm_aggression * 2.2)), 1, 4)
 		cfg.swarm_region_switch_interval = lerpf(8.2, 2.2, swarm_aggression)
+		cfg.spawn_mix_mode = _pick_spawn_mix_mode_for_wave(cfg.swarm_enabled, swarm_aggression)
+		cfg.edge_inject_ratio = _edge_injection_ratio_for_wave(cfg.spawn_mix_mode, swarm_aggression)
+		cfg.min_spawn_distance_to_player = lerpf(170.0, 250.0, swarm_aggression)
+		cfg.side_repeat_cooldown = 2
+		cfg.spawn_interval_jitter = lerpf(0.14, 0.38, swarm_aggression)
+		cfg.swarm_start_regions = _pick_swarm_start_regions(cfg.swarm_group_count, cfg.origin_region)
 
 	return cfg
 
@@ -198,11 +235,16 @@ func _spawn_next_enemy() -> void:
 	_next_enemy_id += 1
 
 	# Random edge spawn position.
-	var pos: Vector2 = _random_edge_position()
+	var pos: Vector2 = _fair_random_edge_position(
+		_current_config.min_spawn_distance_to_player,
+		_current_config.edge_bias_side,
+		_current_config.side_repeat_cooldown
+	)
 	var group_id: int = 0
 	var slot_index: int = 0
 	var slot_count: int = 1
-	if _current_config.swarm_enabled and _swarm_director != null:
+	var use_swarm_spawn: bool = _should_use_swarm_spawn_for_next_enemy()
+	if use_swarm_spawn:
 		group_id = _pick_swarm_group_for_spawn(_current_config.swarm_group_count)
 		slot_index = _wave_swarm_next_slot[group_id]
 		slot_count = maxi(1, _wave_swarm_group_target_counts[group_id])
@@ -213,7 +255,7 @@ func _spawn_next_enemy() -> void:
 		_spawn_boss(id, pos)
 	else:
 		var pick: EnemyResource = _pick_enemy_for_arena()
-		_spawn_enemy(id, pos, pick, group_id, slot_index, slot_count)
+		_spawn_enemy(id, pos, pick, group_id, slot_index, slot_count, use_swarm_spawn)
 
 	_alive_enemies += 1
 
@@ -224,7 +266,8 @@ func _spawn_enemy(
 	res: EnemyResource,
 	group_id: int,
 	slot_index: int,
-	slot_count: int
+	slot_count: int,
+	register_in_swarm: bool
 ) -> void:
 	var enemy: Enemy = SCENE_ENEMY.instantiate() as Enemy
 	var scaled_hp: float = res.base_hp * (1.0 + arena_index * 0.12) * _enemy_hp_multiplier
@@ -242,7 +285,7 @@ func _spawn_enemy(
 	enemy.position = pos
 	_scene_root.add_child(enemy)
 	_collision_system.register_enemy(enemy)
-	if _current_config.swarm_enabled and _swarm_director != null:
+	if register_in_swarm:
 		_swarm_director.register_enemy(
 			enemy,
 			id,
@@ -422,23 +465,27 @@ func _boss_bullet_speed_scale() -> float:
 
 func _random_edge_position() -> Vector2:
 	var edge: int = RandomService.next_int_range(0, 3)
+	return _position_on_edge(edge)
+
+
+func _position_on_edge(edge: int) -> Vector2:
 	match edge:
-		0:  # Top
+		EDGE_TOP:
 			return Vector2(
 				RandomService.next_int_range(int(arena_min.x), int(arena_max.x)),
 				arena_min.y
 			)
-		1:  # Bottom
+		EDGE_BOTTOM:
 			return Vector2(
 				RandomService.next_int_range(int(arena_min.x), int(arena_max.x)),
 				arena_max.y
 			)
-		2:  # Left
+		EDGE_LEFT:
 			return Vector2(
 				arena_min.x,
 				RandomService.next_int_range(int(arena_min.y), int(arena_max.y))
 			)
-		_:  # Right
+		_:
 			return Vector2(
 				arena_max.x,
 				RandomService.next_int_range(int(arena_min.y), int(arena_max.y))
@@ -449,8 +496,20 @@ func _pick_swarm_pattern_for_wave() -> int:
 	if _swarm_director == null:
 		return 0
 	var base_pattern: int = arena_index % SWARM_PATTERN_COUNT
-	var offset: int = RandomService.next_int_range(0, SWARM_PATTERN_COUNT - 1)
-	return posmod(base_pattern + offset, SWARM_PATTERN_COUNT)
+	var fallback: int = posmod(base_pattern + RandomService.next_int_range(0, SWARM_PATTERN_COUNT - 1), SWARM_PATTERN_COUNT)
+	for _attempt: int in range(8):
+		var candidate: int = posmod(base_pattern + RandomService.next_int_range(0, SWARM_PATTERN_COUNT - 1), SWARM_PATTERN_COUNT)
+		if _contains_recent(_recent_swarm_patterns, candidate):
+			continue
+		if not _recent_swarm_patterns.is_empty():
+			var last_pattern: int = _recent_swarm_patterns[_recent_swarm_patterns.size() - 1]
+			if int(floor(float(candidate) / 5.0)) == int(floor(float(last_pattern) / 5.0)):
+				if RandomService.next_float() < 0.7:
+					continue
+		_push_recent_int(_recent_swarm_patterns, candidate, 5)
+		return candidate
+	_push_recent_int(_recent_swarm_patterns, fallback, 5)
+	return fallback
 
 
 func _initialise_swarm_wave_state(cfg: WaveConfig) -> void:
@@ -466,14 +525,15 @@ func _initialise_swarm_wave_state(cfg: WaveConfig) -> void:
 		_wave_swarm_next_slot.append(0)
 		_wave_swarm_group_target_counts.append(0)
 
-	for enemy_idx: int in range(cfg.enemy_count):
-		var group_id: int = enemy_idx % group_count
+	for _enemy_idx: int in range(cfg.enemy_count):
+		var group_id: int = _pick_group_for_wave_distribution(group_count)
 		_wave_swarm_group_target_counts[group_id] += 1
 
 	if _swarm_director != null:
 		_swarm_director.clear_wave()
 		_swarm_director.arena_min = arena_min
 		_swarm_director.arena_max = arena_max
+		_swarm_director.configure_wave_regions(cfg.swarm_start_regions, cfg.origin_region)
 
 
 func _pick_swarm_group_for_spawn(group_count: int) -> int:
@@ -481,6 +541,7 @@ func _pick_swarm_group_for_spawn(group_count: int) -> int:
 		return 0
 	var best_group: int = 0
 	var best_fill: float = INF
+	var tie_groups: Array[int] = []
 	for group_id: int in range(group_count):
 		var used: int = _wave_swarm_next_slot[group_id]
 		var total: int = maxi(1, _wave_swarm_group_target_counts[group_id])
@@ -488,7 +549,223 @@ func _pick_swarm_group_for_spawn(group_count: int) -> int:
 		if fill < best_fill:
 			best_fill = fill
 			best_group = group_id
-	return best_group
+			tie_groups.clear()
+			tie_groups.append(group_id)
+		elif is_equal_approx(fill, best_fill):
+			tie_groups.append(group_id)
+	if tie_groups.size() <= 1:
+		return best_group
+	var pick_idx: int = RandomService.next_int_range(0, tie_groups.size() - 1)
+	return tie_groups[pick_idx]
+
+
+func _pick_group_for_wave_distribution(group_count: int) -> int:
+	if group_count <= 1:
+		return 0
+
+	var best_groups: Array[int] = []
+	var lowest_count: int = 1_000_000
+	for group_id: int in range(group_count):
+		var count: int = _wave_swarm_group_target_counts[group_id]
+		if count < lowest_count:
+			lowest_count = count
+			best_groups.clear()
+			best_groups.append(group_id)
+		elif count == lowest_count:
+			best_groups.append(group_id)
+
+	var pick_idx: int = RandomService.next_int_range(0, best_groups.size() - 1)
+	return best_groups[pick_idx]
+
+
+func _roll_next_spawn_interval() -> float:
+	if _current_config == null:
+		return 0.25
+	if _current_config.boss_wave:
+		return 0.0
+	var base_interval: float = maxf(0.1, _current_config.spawn_interval)
+	var jitter: float = clampf(_current_config.spawn_interval_jitter, 0.0, 0.7)
+	if jitter <= 0.0:
+		return base_interval
+	var min_scale: float = maxf(0.55, 1.0 - jitter)
+	var max_scale: float = 1.0 + jitter
+	var interval_scale: float = lerpf(min_scale, max_scale, RandomService.next_float())
+	return maxf(0.1, base_interval * interval_scale)
+
+
+func _should_use_swarm_spawn_for_next_enemy() -> bool:
+	if _current_config == null:
+		return false
+	if not _current_config.swarm_enabled or _swarm_director == null:
+		return false
+	if _current_config.spawn_mix_mode == SPAWN_MODE_EDGE:
+		return false
+	if _current_config.spawn_mix_mode == SPAWN_MODE_SWARM:
+		return true
+	# Mixed mode injects edge-origin flanks to break predictability.
+	return RandomService.next_float() >= _current_config.edge_inject_ratio
+
+
+func _pick_spawn_mix_mode_for_wave(swarm_available: bool, aggression: float) -> int:
+	if not swarm_available:
+		_push_recent_int(_recent_spawn_mix_modes, SPAWN_MODE_EDGE, 4)
+		return SPAWN_MODE_EDGE
+
+	var choices: Array = [SPAWN_MODE_SWARM, SPAWN_MODE_MIXED, SPAWN_MODE_EDGE]
+	var weights: Array[float] = [
+		maxf(0.08, 0.52 - aggression * 0.48),
+		0.36 + aggression * 0.40,
+		0.12 + aggression * 0.20,
+	]
+	var fallback: int = int(RandomService.weighted_pick(choices, weights))
+	for _attempt: int in range(6):
+		var candidate: int = int(RandomService.weighted_pick(choices, weights))
+		if _contains_recent(_recent_spawn_mix_modes, candidate):
+			continue
+		_push_recent_int(_recent_spawn_mix_modes, candidate, 4)
+		return candidate
+	_push_recent_int(_recent_spawn_mix_modes, fallback, 4)
+	return fallback
+
+
+func _edge_injection_ratio_for_wave(spawn_mode: int, aggression: float) -> float:
+	if spawn_mode == SPAWN_MODE_SWARM:
+		return 0.0
+	if spawn_mode == SPAWN_MODE_EDGE:
+		return 1.0
+	return lerpf(0.30, 0.72, aggression)
+
+
+func _pick_origin_region_for_wave() -> int:
+	var fallback: int = RandomService.next_int_range(0, 8)
+	for _attempt: int in range(10):
+		var candidate: int = RandomService.next_int_range(0, 8)
+		if _contains_recent(_recent_origin_regions, candidate):
+			continue
+		if not _recent_origin_regions.is_empty():
+			var last: int = _recent_origin_regions[_recent_origin_regions.size() - 1]
+			if _region_grid_distance(candidate, last) <= 1 and RandomService.next_float() < 0.8:
+				continue
+		_push_recent_int(_recent_origin_regions, candidate, 6)
+		return candidate
+	_push_recent_int(_recent_origin_regions, fallback, 6)
+	return fallback
+
+
+func _pick_edge_bias_for_origin(origin_region: int) -> int:
+	if RandomService.next_float() > 0.72:
+		return -1
+	var col: int = posmod(origin_region, 3)
+	var row: int = int(floor(float(origin_region) / 3.0))
+	var horizontal: int = EDGE_LEFT if col <= 0 else EDGE_RIGHT
+	var vertical: int = EDGE_TOP if row <= 0 else EDGE_BOTTOM
+	if col == 1 and row == 1:
+		return RandomService.next_int_range(0, 3)
+	if absi(col - 1) >= absi(row - 1):
+		return horizontal
+	return vertical
+
+
+func _pick_swarm_start_regions(group_count: int, origin_region: int) -> Array[int]:
+	var picked: Array[int] = []
+	if group_count <= 0:
+		return picked
+	picked.append(origin_region)
+
+	while picked.size() < group_count:
+		var best_candidates: Array[int] = []
+		var best_score: int = -1
+		for candidate: int in range(9):
+			if picked.has(candidate):
+				continue
+			var nearest: int = 99
+			for used: int in picked:
+				nearest = mini(nearest, _region_grid_distance(candidate, used))
+			if nearest > best_score:
+				best_score = nearest
+				best_candidates.clear()
+				best_candidates.append(candidate)
+			elif nearest == best_score:
+				best_candidates.append(candidate)
+		if best_candidates.is_empty():
+			break
+		var pick_idx: int = RandomService.next_int_range(0, best_candidates.size() - 1)
+		picked.append(best_candidates[pick_idx])
+
+	return picked
+
+
+func _fair_random_edge_position(min_distance: float, preferred_edge: int, repeat_cooldown: int) -> Vector2:
+	var edge: int = _pick_edge_side(preferred_edge, repeat_cooldown)
+	var best_pos: Vector2 = _position_on_edge(edge)
+	var best_distance: float = _distance_to_player(best_pos)
+
+	for _attempt: int in range(8):
+		var candidate: Vector2 = _position_on_edge(edge)
+		var distance_to_player: float = _distance_to_player(candidate)
+		if distance_to_player >= min_distance:
+			_push_recent_int(_recent_edge_sides, edge, 6)
+			return candidate
+		if distance_to_player > best_distance:
+			best_distance = distance_to_player
+			best_pos = candidate
+
+	_push_recent_int(_recent_edge_sides, edge, 6)
+	return best_pos
+
+
+func _pick_edge_side(preferred_edge: int, repeat_cooldown: int) -> int:
+	var fallback: int = RandomService.next_int_range(0, 3)
+	for _attempt: int in range(8):
+		var candidate: int = RandomService.next_int_range(0, 3)
+		if preferred_edge >= 0 and RandomService.next_float() < 0.62:
+			candidate = preferred_edge
+		if _is_edge_on_cooldown(candidate, repeat_cooldown):
+			continue
+		return candidate
+	if preferred_edge >= 0 and not _is_edge_on_cooldown(preferred_edge, repeat_cooldown):
+		return preferred_edge
+	return fallback
+
+
+func _is_edge_on_cooldown(edge: int, repeat_cooldown: int) -> bool:
+	if repeat_cooldown <= 0:
+		return false
+	if _recent_edge_sides.size() < repeat_cooldown:
+		return false
+	for idx: int in range(_recent_edge_sides.size() - repeat_cooldown, _recent_edge_sides.size()):
+		if _recent_edge_sides[idx] != edge:
+			return false
+	return true
+
+
+func _distance_to_player(pos: Vector2) -> float:
+	if _player == null:
+		return INF
+	return pos.distance_to(_player.global_position)
+
+
+func _contains_recent(history: Array[int], value: int) -> bool:
+	if history.is_empty():
+		return false
+	for idx: int in range(history.size() - 1, maxi(0, history.size() - 3) - 1, -1):
+		if history[idx] == value:
+			return true
+	return false
+
+
+func _push_recent_int(history: Array[int], value: int, max_size: int) -> void:
+	history.append(value)
+	while history.size() > max_size:
+		history.remove_at(0)
+
+
+func _region_grid_distance(a: int, b: int) -> int:
+	var a_col: int = posmod(a, 3)
+	var a_row: int = int(floor(float(a) / 3.0))
+	var b_col: int = posmod(b, 3)
+	var b_row: int = int(floor(float(b) / 3.0))
+	return absi(a_col - b_col) + absi(a_row - b_row)
 
 
 func _swarm_aggression_for_arena(arena_level: int) -> float:

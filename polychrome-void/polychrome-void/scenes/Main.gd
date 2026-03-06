@@ -54,6 +54,7 @@ func _ready() -> void:
 	_spawn_director.arena_max = _arena_max_runtime
 	_swarm_director.arena_min = _arena_min_runtime
 	_swarm_director.arena_max = _arena_max_runtime
+	TelemetryService.set_perf_sources(_collision_system, _bullet_manager)
 
 	_hud.set_player(_player)
 	_upgrade_picker.initialise(_upgrade_pool, _modifier_component)
