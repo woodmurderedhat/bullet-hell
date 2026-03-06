@@ -7,12 +7,12 @@ extends Node2D
 ## Inner class for BASE player stats — values here are never modified by upgrades.
 ## Effective values are computed via ModifierComponent.get_stat(base, key).
 class PlayerStats:
-	var max_hp: float        = 10.0
-	var current_hp: float    = 10.0
+	var max_hp: float        = 20.0
+	var current_hp: float    = 20.0
 	## Base values — used as input to ModifierComponent.get_stat().
-	var speed: float         = 110.0
+	var speed: float         = 100.0
 	var fire_rate: float     = 5.0    ## Bullets per second.
-	var bullet_damage: float = 5.0
+	var bullet_damage: float = 10.0
 	var bullet_speed: float  = 360.0
 
 ## Triangle visual half-size.
