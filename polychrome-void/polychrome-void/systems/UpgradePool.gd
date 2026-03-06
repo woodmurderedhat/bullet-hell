@@ -4,10 +4,10 @@ class_name UpgradePool
 extends Node
 
 ## Rarity base weights (must match UpgradeResource.Rarity enum order).
-const RARITY_WEIGHTS: Array[float] = [60.0, 25.0, 10.0, 5.0]
+const RARITY_WEIGHTS: Array[float] = [65.0, 22.0, 9.0, 4.0]
 
 ## Synergy bias added per dominant tag match.
-const SYNERGY_BIAS: float = 15.0
+const SYNERGY_BIAS: float = 9.0
 
 ## Pre-loaded full upgrade roster.
 const ALL_UPGRADES: Array[String] = [

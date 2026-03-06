@@ -32,6 +32,14 @@ const SWARM_PATTERN_COUNT: int = 25
 const SPAWN_MODE_SWARM: int = 0
 const SPAWN_MODE_MIXED: int = 1
 const SPAWN_MODE_EDGE: int = 2
+const HP_SCALING_PER_LEVEL: float = 0.15
+const LONG_RUN_HP_SCALING_PER_LEVEL: float = 0.0025
+const LONG_RUN_HP_SCALING_START_LEVEL: int = 25
+const SPAWN_BASE_ENEMY_COUNT: int = 5
+const SPAWN_ENEMY_COUNT_PER_LEVEL: int = 2
+const SPAWN_INTERVAL_FLOOR: float = 0.24
+const SPAWN_INTERVAL_DROP_PER_LEVEL: float = 0.06
+const SWARM_AGGRESSION_FULL_LEVEL: float = 72.0
 
 const EDGE_TOP: int = 0
 const EDGE_BOTTOM: int = 1
@@ -212,8 +220,8 @@ func _build_wave_config() -> WaveConfig:
 		cfg.origin_region = _pick_origin_region_for_wave()
 		cfg.edge_bias_side = _pick_edge_bias_for_origin(cfg.origin_region)
 		# Scale enemy count and mix patterns as arenas progress.
-		cfg.enemy_count = maxi(2, 4 + arena_index * 2 + _enemy_count_add)
-		cfg.spawn_interval = maxf(0.25, (1.2 - arena_index * 0.05) * _spawn_interval_scale)
+		cfg.enemy_count = maxi(2, SPAWN_BASE_ENEMY_COUNT + arena_index * SPAWN_ENEMY_COUNT_PER_LEVEL + _enemy_count_add)
+		cfg.spawn_interval = maxf(SPAWN_INTERVAL_FLOOR, (1.2 - arena_index * SPAWN_INTERVAL_DROP_PER_LEVEL) * _spawn_interval_scale)
 		cfg.enemy_resource = _pick_enemy_for_arena()
 		cfg.swarm_enabled = _swarm_director != null
 		cfg.swarm_pattern_id = _pick_swarm_pattern_for_wave()
@@ -270,7 +278,7 @@ func _spawn_enemy(
 	register_in_swarm: bool
 ) -> void:
 	var enemy: Enemy = SCENE_ENEMY.instantiate() as Enemy
-	var scaled_hp: float = res.base_hp * (1.0 + arena_index * 0.12) * _enemy_hp_multiplier
+	var scaled_hp: float = res.base_hp * _hp_scale_for_arena(arena_index) * _enemy_hp_multiplier
 	var elite_archetype: StringName = _pick_elite_archetype_for_spawn()
 	enemy.setup(
 		res,
@@ -312,7 +320,7 @@ func _spawn_enemy(
 func _spawn_boss(id: int, pos: Vector2) -> void:
 	var boss: Boss = SCENE_BOSS.instantiate() as Boss
 	var res: BossResource = _current_config.boss_resource
-	var scaled_hp: float = res.base_hp * (1.0 + arena_index * 0.12) * _boss_hp_multiplier
+	var scaled_hp: float = res.base_hp * _hp_scale_for_arena(arena_index) * _boss_hp_multiplier
 	boss.setup_boss(
 		res,
 		scaled_hp,
@@ -341,6 +349,14 @@ func _pick_enemy_for_arena() -> EnemyResource:
 
 	var pick_idx: int = RandomService.next_int_range(0, unlock_count - 1)
 	return _enemy_roster[pick_idx]
+
+
+func _hp_scale_for_arena(arena_level: int) -> float:
+	var clamped_level: int = maxi(0, arena_level)
+	var base_scale: float = 1.0 + float(clamped_level) * HP_SCALING_PER_LEVEL
+	# Add a late-session slope so challenge keeps rising past early arenas.
+	var long_run_levels: int = maxi(0, clamped_level - LONG_RUN_HP_SCALING_START_LEVEL)
+	return base_scale + float(long_run_levels) * LONG_RUN_HP_SCALING_PER_LEVEL
 
 
 func _pick_boss_for_arena(current_arena: int) -> BossResource:
@@ -769,7 +785,7 @@ func _region_grid_distance(a: int, b: int) -> int:
 
 
 func _swarm_aggression_for_arena(arena_level: int) -> float:
-	return clampf(float(arena_level) / 90.0, 0.0, 1.0)
+	return clampf(float(arena_level) / SWARM_AGGRESSION_FULL_LEVEL, 0.0, 1.0)
 
 
 func _on_enemy_died(_id: int, _pos: Vector2, _score: int) -> void:

@@ -6,6 +6,11 @@ extends Node2D
 
 const STANDARD_CLEAR_ARENAS: int = 3
 const RUN_MENU_SCENE := preload("res://ui/RunMenuOverlay.gd")
+const DAMAGE_RAMP_PER_LEVEL_ENEMY: float = 0.006
+const DAMAGE_RAMP_PER_LEVEL_BOSS: float = 0.008
+const LATE_DAMAGE_RAMP_PER_LEVEL_ENEMY: float = 0.003
+const LATE_DAMAGE_RAMP_PER_LEVEL_BOSS: float = 0.004
+const LATE_DAMAGE_RAMP_START_LEVEL: int = 25
 
 # ── Child node references (populated in _ready via $NodePath) ──────────────
 @onready var _bullet_manager:   BulletManager   = $BulletManager
@@ -32,6 +37,8 @@ var _pause_active: bool = false
 var _run_menu: RunMenuOverlay = null
 var _arena_min_runtime: Vector2 = ARENA_MIN
 var _arena_max_runtime: Vector2 = ARENA_MAX
+var _base_enemy_damage_scale: float = 1.0
+var _base_boss_damage_scale: float = 1.0
 
 
 func _ready() -> void:
@@ -99,6 +106,7 @@ func _start_run() -> void:
 	_arena_backdrop.visible = true
 	var expansion_profile: Dictionary = _build_expansion_profile_from_active_unlocks()
 	_apply_expansion_profile(expansion_profile)
+	_refresh_enemy_boss_damage_scaling(0)
 	_modifier_component.reset()
 	if _shield_system != null and _shield_system.has_method("refresh_state"):
 		_shield_system.call("refresh_state", true)
@@ -131,10 +139,36 @@ func _apply_expansion_profile(profile: Dictionary) -> void:
 	_swarm_director.arena_max = _arena_max_runtime
 	_spawn_director.apply_expansion_profile(profile)
 
-	var enemy_damage_mult: float = float(profile.get("enemy_damage_multiplier", 1.0))
-	var boss_damage_mult: float = float(profile.get("boss_damage_multiplier", 1.0))
-	_collision_system.set_enemy_damage_scale(enemy_damage_mult)
-	_collision_system.set_boss_damage_scale(boss_damage_mult)
+	_base_enemy_damage_scale = maxf(0.1, float(profile.get("enemy_damage_multiplier", 1.0)))
+	_base_boss_damage_scale = maxf(0.1, float(profile.get("boss_damage_multiplier", 1.0)))
+	_refresh_enemy_boss_damage_scaling()
+
+
+func _refresh_enemy_boss_damage_scaling(arena_level: int = -1) -> void:
+	var level: int = arena_level
+	if level < 0:
+		level = maxi(0, _spawn_director.arena_index)
+
+	var enemy_ramp: float = _damage_ramp_for_level(
+		level,
+		DAMAGE_RAMP_PER_LEVEL_ENEMY,
+		LATE_DAMAGE_RAMP_PER_LEVEL_ENEMY
+	)
+	var boss_ramp: float = _damage_ramp_for_level(
+		level,
+		DAMAGE_RAMP_PER_LEVEL_BOSS,
+		LATE_DAMAGE_RAMP_PER_LEVEL_BOSS
+	)
+	_collision_system.set_enemy_damage_scale(_base_enemy_damage_scale * enemy_ramp)
+	_collision_system.set_boss_damage_scale(_base_boss_damage_scale * boss_ramp)
+
+
+func _damage_ramp_for_level(level: int, per_level: float, late_per_level: float) -> float:
+	var clamped_level: int = maxi(0, level)
+	var ramp: float = 1.0 + float(clamped_level) * per_level
+	var late_levels: int = maxi(0, clamped_level - LATE_DAMAGE_RAMP_START_LEVEL)
+	ramp += float(late_levels) * late_per_level
+	return maxf(0.1, ramp)
 
 
 func _build_expansion_profile_from_active_unlocks() -> Dictionary:
@@ -229,6 +263,7 @@ func _on_upgrade_chosen(res: Resource) -> void:
 	# Delay briefly then begin the next wave.
 	await get_tree().create_timer(0.3).timeout
 	if _run_active:
+		_refresh_enemy_boss_damage_scaling(_spawn_director.arena_index)
 		_spawn_director.begin_next_wave()
 
 
@@ -246,6 +281,7 @@ func _on_wave_complete(_arena_index: int) -> void:
 	if not endless_mode and _spawn_director.arena_index >= standard_clear_levels:
 		_end_run(true)
 		return
+	_refresh_enemy_boss_damage_scaling(_spawn_director.arena_index)
 
 	_player.set_gameplay_input_enabled(false)
 

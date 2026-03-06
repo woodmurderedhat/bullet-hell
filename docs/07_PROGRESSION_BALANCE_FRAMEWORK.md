@@ -2,10 +2,12 @@
 
 ## Core Run Scaling
 
-- Enemy HP scaling: `base_hp * (1 + arena_index * 0.12)`
-- Boss HP scaling: `base_hp * (1 + arena_index * 0.12)`
-- Enemy count baseline: `4 + arena_index * 2`
-- Spawn interval baseline: `max(0.4, 1.2 - arena_index * 0.05)`
+- Enemy HP scaling: `base_hp * (1 + arena_index * 0.15 + max(0, arena_index - 25) * 0.0025)`
+- Boss HP scaling: `base_hp * (1 + arena_index * 0.15 + max(0, arena_index - 25) * 0.0025)`
+- Enemy count baseline: `5 + arena_index * 2`
+- Spawn interval baseline: `max(0.24, 1.2 - arena_index * 0.06)`
+- Enemy damage scaling baseline: `enemy_damage_multiplier * (1 + arena_index * 0.006 + max(0, arena_index - 25) * 0.003)`
+- Boss damage scaling baseline: `boss_damage_multiplier * (1 + arena_index * 0.008 + max(0, arena_index - 25) * 0.004)`
 
 ## Arena Length & Boss Cadence
 
@@ -17,12 +19,12 @@
 
 ## Upgrade Offer Distribution
 
-- Common 60%
-- Rare 25%
-- Epic 10%
-- Legendary 5%
+- Common 65%
+- Rare 22%
+- Epic 9%
+- Legendary 4%
 
-Synergy bias increases draw chance by 15% per dominant tag.
+Synergy bias increases draw chance by +9 weight per dominant tag.
 
 ## Meta Progression Model (Expansion-First)
 

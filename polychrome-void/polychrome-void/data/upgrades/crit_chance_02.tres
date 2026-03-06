@@ -10,6 +10,6 @@ tags = [&"Crit"]
 stat_additive = {}
 stat_multiplicative = {}
 triggers = [&"crit_10"]
-stack_limit = 5
+stack_limit = 4
 display_name = "Precision Array"
 description = "+10% crit chance. Stack to approach guaranteed crits."
