@@ -74,10 +74,7 @@ func _load_all() -> void:
 
 
 func _sync_meta_unlocks() -> void:
-	_meta_unlocked = []
-	var raw: Array = SaveService.get_save("meta_unlocks", [])
-	for id: Variant in raw:
-		_meta_unlocked.append(StringName(str(id)))
+	_meta_unlocked = SaveService.get_meta_unlocks()
 
 
 ## Generate `count` unique upgrade offers.
@@ -87,6 +84,7 @@ func generate_offer(
 	dominant_tags: Array[StringName],
 	modifier: ModifierComponent = null
 ) -> Array[UpgradeResource]:
+	_sync_meta_unlocks()
 	var available: Array[UpgradeResource] = _build_available_pool(modifier)
 	if available.is_empty():
 		return []
@@ -108,18 +106,25 @@ func generate_offer(
 
 
 ## Build the pool of currently available upgrades.
-## Filters by meta unlock requirements (if id is in ALL_UPGRADES but not unlocked,
-## it is still included — unlocks only gate locked content injected by MetaMenu).
+## Filters by prerequisites, branch locks, and explicit meta unlock requirements.
 func _build_available_pool(modifier: ModifierComponent = null) -> Array[UpgradeResource]:
 	var pool: Array[UpgradeResource] = []
 	var branch_locks: Dictionary = _resolve_branch_locks(modifier)
 	for res: UpgradeResource in _all_resources:
+		if _is_meta_locked(res):
+			continue
 		if modifier != null and not modifier.can_apply_upgrade(res):
 			continue
 		if _is_blocked_by_branch_lock(res, branch_locks):
 			continue
 		pool.append(res)
 	return pool
+
+
+func _is_meta_locked(res: UpgradeResource) -> bool:
+	if res.meta_unlock_required_id == StringName():
+		return false
+	return not _meta_unlocked.has(res.meta_unlock_required_id)
 
 
 func _resolve_branch_locks(modifier: ModifierComponent = null) -> Dictionary:

@@ -6,6 +6,8 @@ extends Node
 const SAVE_SLOT_COUNT: int = 3
 const SLOT_PATH_TEMPLATE: String = "user://save_slot_%d.json"
 const CLOUD_PATH_TEMPLATE: String = "user://cloud_slot_%d.json"
+const MIGRATION_EXPANSION_ACTIVE_V1_KEY: String = "migration_expansion_active_v1"
+const MIGRATION_META_UNLOCKS_FROM_EXPANSIONS_V1_KEY: String = "migration_meta_unlocks_from_expansions_v1"
 
 ## Default structure for a fresh save.
 const DEFAULT_SAVE: Dictionary = {
@@ -23,6 +25,8 @@ const DEFAULT_SAVE: Dictionary = {
 	"input_bindings": {},
 	"platform_achievements": [],
 	"platform_leaderboard_scores": [],
+	MIGRATION_EXPANSION_ACTIVE_V1_KEY: false,
+	MIGRATION_META_UNLOCKS_FROM_EXPANSIONS_V1_KEY: false,
 }
 
 var _data: Dictionary = {}
@@ -65,6 +69,8 @@ func load_save() -> void:
 	for key: String in parsed.keys():
 		_data[key] = parsed[key]
 
+	_apply_migrations_if_needed()
+
 
 ## Persist current data to disk.
 func write_save() -> void:
@@ -103,17 +109,30 @@ func add_currency(delta: int) -> void:
 
 ## Convenience: add an unlock ID if not already present.
 func add_unlock(unlock_id: StringName) -> void:
-	var unlocks: Array = _data.get("meta_unlocks", [])
-	if not unlocks.has(str(unlock_id)):
-		unlocks.append(str(unlock_id))
-		_data["meta_unlocks"] = unlocks
-		write_save()
+	var unlocks: Array[StringName] = get_meta_unlocks()
+	if unlocks.has(unlock_id):
+		return
+	unlocks.append(unlock_id)
+	_set_meta_unlocks(unlocks)
+	write_save()
 
 
 ## Returns true if the given upgrade ID is unlocked.
 func is_unlocked(unlock_id: StringName) -> bool:
-	var unlocks: Array = _data.get("meta_unlocks", [])
-	return unlocks.has(str(unlock_id))
+	return get_meta_unlocks().has(unlock_id)
+
+
+func get_meta_unlocks() -> Array[StringName]:
+	var raw_unlocks: Array = _data.get("meta_unlocks", [])
+	var output: Array[StringName] = []
+	for value: Variant in raw_unlocks:
+		var id: StringName = StringName(str(value))
+		if id == StringName():
+			continue
+		if output.has(id):
+			continue
+		output.append(id)
+	return output
 
 
 func add_expansion_unlock(unlock_id: StringName) -> void:
@@ -121,6 +140,10 @@ func add_expansion_unlock(unlock_id: StringName) -> void:
 	if not unlocks.has(str(unlock_id)):
 		unlocks.append(str(unlock_id))
 		_data["expansion_unlocks"] = unlocks
+		var meta_unlocks: Array[StringName] = get_meta_unlocks()
+		if not meta_unlocks.has(unlock_id):
+			meta_unlocks.append(unlock_id)
+			_set_meta_unlocks(meta_unlocks)
 		write_save()
 
 
@@ -147,15 +170,41 @@ func get_active_expansion_unlocks() -> Array[StringName]:
 
 func set_active_expansion_unlocks(unlock_ids: Array[StringName]) -> void:
 	var purchased: Array[StringName] = get_purchased_expansion_unlocks()
-	var unique_output: Array[String] = []
+	var catalog_by_id: Dictionary = ExpansionUnlockCatalog.get_catalog_by_id()
+	var output: Array[StringName] = []
+	var group_index_by_name: Dictionary = {}
+
 	for unlock_id: StringName in unlock_ids:
 		if not purchased.has(unlock_id):
 			continue
-		var key: String = str(unlock_id)
-		if unique_output.has(key):
+		if output.has(unlock_id):
 			continue
-		unique_output.append(key)
-	_data["active_expansion_unlocks"] = unique_output
+
+		if not catalog_by_id.has(unlock_id):
+			output.append(unlock_id)
+			continue
+
+		var unlock_res: ExpansionUnlockResource = catalog_by_id[unlock_id] as ExpansionUnlockResource
+		if unlock_res == null:
+			output.append(unlock_id)
+			continue
+
+		if unlock_res.mutually_exclusive_group == StringName():
+			output.append(unlock_id)
+			continue
+
+		var group_key: String = str(unlock_res.mutually_exclusive_group)
+		if group_index_by_name.has(group_key):
+			var replace_index: int = int(group_index_by_name[group_key])
+			output[replace_index] = unlock_id
+		else:
+			group_index_by_name[group_key] = output.size()
+			output.append(unlock_id)
+
+	var serialised: Array[String] = []
+	for unlock_id: StringName in output:
+		serialised.append(str(unlock_id))
+	_data["active_expansion_unlocks"] = serialised
 	write_save()
 
 
@@ -245,3 +294,115 @@ func _copy_cloud_to_local(cloud_path: String, local_path: String) -> void:
 		return
 	local_file.store_string(cloud_text)
 	local_file.close()
+
+
+func _set_meta_unlocks(unlocks: Array[StringName]) -> void:
+	var serialised: Array[String] = []
+	for unlock_id: StringName in unlocks:
+		if unlock_id == StringName():
+			continue
+		var key: String = str(unlock_id)
+		if serialised.has(key):
+			continue
+		serialised.append(key)
+	_data["meta_unlocks"] = serialised
+
+
+func _apply_migrations_if_needed() -> void:
+	var changed: bool = false
+	if _migrate_active_expansion_unlocks_v1():
+		changed = true
+	if _migrate_meta_unlocks_from_expansion_purchases_v1():
+		changed = true
+	if changed:
+		write_save()
+
+
+## Backward compatibility: old saves may have purchased expansions but no active list.
+## Choose one unlock per mutually-exclusive group using highest cost, then lexicographic ID.
+func _migrate_active_expansion_unlocks_v1() -> bool:
+	if bool(_data.get(MIGRATION_EXPANSION_ACTIVE_V1_KEY, false)):
+		return false
+
+	var purchased: Array[StringName] = get_purchased_expansion_unlocks()
+	var active_raw: Array = _data.get("active_expansion_unlocks", [])
+
+	if active_raw.is_empty() and not purchased.is_empty():
+		var migrated: Array[StringName] = _build_migrated_active_expansions(purchased)
+		var serialised: Array[String] = []
+		for unlock_id: StringName in migrated:
+			serialised.append(str(unlock_id))
+		_data["active_expansion_unlocks"] = serialised
+
+	_data[MIGRATION_EXPANSION_ACTIVE_V1_KEY] = true
+	return true
+
+
+func _build_migrated_active_expansions(purchased: Array[StringName]) -> Array[StringName]:
+	var catalog_by_id: Dictionary = ExpansionUnlockCatalog.get_catalog_by_id()
+	var output: Array[StringName] = []
+	var group_winners: Dictionary = {}
+
+	for unlock_id: StringName in purchased:
+		if not catalog_by_id.has(unlock_id):
+			if not output.has(unlock_id):
+				output.append(unlock_id)
+			continue
+
+		var unlock_res: ExpansionUnlockResource = catalog_by_id[unlock_id] as ExpansionUnlockResource
+		if unlock_res == null:
+			if not output.has(unlock_id):
+				output.append(unlock_id)
+			continue
+
+		if unlock_res.mutually_exclusive_group == StringName():
+			if not output.has(unlock_id):
+				output.append(unlock_id)
+			continue
+
+		var group_key: String = str(unlock_res.mutually_exclusive_group)
+		if not group_winners.has(group_key):
+			group_winners[group_key] = unlock_res
+			continue
+
+		var current_winner: ExpansionUnlockResource = group_winners[group_key] as ExpansionUnlockResource
+		if current_winner == null:
+			group_winners[group_key] = unlock_res
+			continue
+
+		if unlock_res.cost > current_winner.cost:
+			group_winners[group_key] = unlock_res
+		elif unlock_res.cost == current_winner.cost and String(unlock_res.id) < String(current_winner.id):
+			group_winners[group_key] = unlock_res
+
+	for group_key: String in group_winners.keys():
+		var winner: ExpansionUnlockResource = group_winners[group_key] as ExpansionUnlockResource
+		if winner == null:
+			continue
+		if output.has(winner.id):
+			continue
+		output.append(winner.id)
+
+	return output
+
+
+## Backward compatibility: expansion purchases should also count as meta unlock IDs.
+func _migrate_meta_unlocks_from_expansion_purchases_v1() -> bool:
+	if bool(_data.get(MIGRATION_META_UNLOCKS_FROM_EXPANSIONS_V1_KEY, false)):
+		return false
+
+	var purchased: Array[StringName] = get_purchased_expansion_unlocks()
+	var meta_unlocks: Array[StringName] = get_meta_unlocks()
+	var changed: bool = false
+
+	for unlock_id: StringName in purchased:
+		if meta_unlocks.has(unlock_id):
+			continue
+		meta_unlocks.append(unlock_id)
+		changed = true
+
+	if changed:
+		_set_meta_unlocks(meta_unlocks)
+
+	_data[MIGRATION_META_UNLOCKS_FROM_EXPANSIONS_V1_KEY] = true
+	return true

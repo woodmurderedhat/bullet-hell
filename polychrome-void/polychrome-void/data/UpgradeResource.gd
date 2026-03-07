@@ -39,6 +39,10 @@ enum Rarity { COMMON = 0, RARE = 1, EPIC = 2, LEGENDARY = 3 }
 ## Example: {"fractal_split_01": 2} means that upgrade must be stacked twice.
 @export var required_upgrade_stacks: Dictionary = {}
 
+## Optional persistent meta unlock requirement.
+## Empty value means this upgrade is always eligible in the pool.
+@export var meta_unlock_required_id: StringName = &""
+
 ## Maximum times this upgrade can be stacked in a single run.
 @export var stack_limit: int = 5
 

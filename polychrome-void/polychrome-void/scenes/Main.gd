@@ -105,6 +105,7 @@ func _start_run() -> void:
 	_meta_menu.visible = false
 	_arena_backdrop.visible = true
 	var expansion_profile: Dictionary = _build_expansion_profile_from_active_unlocks()
+	_log_active_expansion_profile(expansion_profile)
 	_apply_expansion_profile(expansion_profile)
 	_refresh_enemy_boss_damage_scaling(0)
 	_modifier_component.reset()
@@ -475,3 +476,24 @@ func _loadout_name(loadout: int) -> String:
 			return "Tank"
 		_:
 			return "Balanced"
+
+
+func _log_active_expansion_profile(profile: Dictionary) -> void:
+	var active_ids: Array[StringName] = SaveService.get_active_expansion_unlocks()
+	print(
+		"Expansion profile | active=%s enemy_hp=%.3f boss_hp=%.3f enemy_dmg=%.3f boss_dmg=%.3f enemy_count_add=%d spawn_interval_scale=%.3f intel=%d elites=%d enemy_paths=%d boss_paths=%d arena_min=%s arena_max=%s" % [
+			str(active_ids),
+			float(profile.get("enemy_hp_multiplier", 1.0)),
+			float(profile.get("boss_hp_multiplier", 1.0)),
+			float(profile.get("enemy_damage_multiplier", 1.0)),
+			float(profile.get("boss_damage_multiplier", 1.0)),
+			int(profile.get("enemy_count_add", 0)),
+			float(profile.get("spawn_interval_scale", 1.0)),
+			int(profile.get("intelligence_tier", 0)),
+			(profile.get("elite_archetypes", []) as Array).size(),
+			(profile.get("enemy_resource_paths", []) as Array).size(),
+			(profile.get("boss_resource_paths", []) as Array).size(),
+			str(profile.get("arena_min", ARENA_MIN)),
+			str(profile.get("arena_max", ARENA_MAX)),
+		]
+	)
