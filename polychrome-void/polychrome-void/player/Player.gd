@@ -36,6 +36,18 @@ const FAN_BASE_SPREAD_DEGREES: float = 16.0
 const PULSE_BASE_BULLETS: int = 6
 const PULSE_BULLETS_PER_STACK: int = 2
 const PULSE_MAX_BULLETS: int = 12
+const FIRE_PRIMARY_SLOT_RESERVE: int = 96
+const MAX_FIRE_TIMER_DELTA: float = 0.05
+const MAX_SPLIT_BUDGET: int = 6
+const BULLET_PRESSURE_WARN_THRESHOLD: float = 0.75
+const BULLET_PRESSURE_OVERHEAT_THRESHOLD: float = 0.90
+const OVERHEAT_COOLDOWN_MIN: float = 1.0
+const OVERHEAT_COOLDOWN_MAX: float = 2.0
+const PRESSURE_RING_RADIUS_SCALE: float = 2.25
+const PRESSURE_RING_WIDTH: float = 3.0
+const PRESSURE_RING_POINTS: int = 32
+const PRESSURE_RING_WARN_COLOR: Color = Color(1.0, 0.82, 0.22, 0.9)
+const PRESSURE_RING_OVERHEAT_COLOR: Color = Color(1.0, 0.28, 0.22, 1.0)
 
 const COLOR_ACTIVE: Color  = Color(0.4, 1.0, 0.6, 1.0)
 const COLOR_HURT: Color    = Color(1.0, 1.0, 1.0, 0.4)
@@ -53,6 +65,9 @@ var _gameplay_input_enabled: bool = true
 var _has_move_target: bool = false
 var _move_target: Vector2 = Vector2.ZERO
 var _gun_world_dir: Vector2 = Vector2.UP
+var _fire_spawn_budget: int = 0
+var _bullet_pressure: float = 0.0
+var _weapon_overheat_timer: float = 0.0
 
 # Cached reference set by Main.tscn after _ready.
 var _bullet_manager: BulletManager = null
@@ -93,10 +108,42 @@ func initialise(bm: BulletManager, cs: CollisionSystem, modifier: ModifierCompon
 func _process(delta: float) -> void:
 	_update_gun_aim()
 	_handle_movement(delta)
+	_update_bullet_pressure_and_overheat(delta)
 	_handle_firing(delta)
 	_handle_invincibility(delta)
 	_handle_regen(delta)
 	queue_redraw()
+
+
+func _update_bullet_pressure_and_overheat(delta: float) -> void:
+	if _bullet_manager == null:
+		_bullet_pressure = 0.0
+		_weapon_overheat_timer = maxf(0.0, _weapon_overheat_timer - delta)
+		return
+
+	var free_slots: int = _bullet_manager.get_player_free_slot_count()
+	var active_slots: int = BulletManager.MAX_BULLETS - free_slots
+	_bullet_pressure = clampf(float(active_slots) / float(BulletManager.MAX_BULLETS), 0.0, 1.0)
+
+	if _weapon_overheat_timer > 0.0:
+		_weapon_overheat_timer = maxf(0.0, _weapon_overheat_timer - delta)
+		return
+
+	if _bullet_pressure < BULLET_PRESSURE_OVERHEAT_THRESHOLD:
+		return
+
+	var pressure_ratio: float = inverse_lerp(
+		BULLET_PRESSURE_OVERHEAT_THRESHOLD,
+		1.0,
+		_bullet_pressure
+	)
+	var cooldown: float = lerpf(
+		OVERHEAT_COOLDOWN_MIN,
+		OVERHEAT_COOLDOWN_MAX,
+		clampf(pressure_ratio, 0.0, 1.0)
+	)
+	_weapon_overheat_timer = cooldown
+	_fire_timer = 0.0
 
 
 func _update_gun_aim() -> void:
@@ -170,14 +217,20 @@ func _handle_firing(delta: float) -> void:
 		return
 	if not _gameplay_input_enabled:
 		return
-	_fire_timer += delta
+	if _weapon_overheat_timer > 0.0:
+		return
+	_fire_timer += minf(delta, MAX_FIRE_TIMER_DELTA)
 	var effective_rate: float = _effective_stat(stats.fire_rate, &"fire_rate")
 	var fire_interval: float = 1.0 / maxf(effective_rate, 0.1)
 	if Input.is_action_just_pressed("fire"):
 		_fire_timer = fire_interval
 	if Input.is_action_pressed("fire") and _fire_timer >= fire_interval:
-		_fire_timer = 0.0
-		EventBus.player_fired.emit()
+		var free_slots: int = _bullet_manager.get_player_free_slot_count()
+		_fire_spawn_budget = maxi(0, free_slots - FIRE_PRIMARY_SLOT_RESERVE)
+		if _fire_spawn_budget <= 0:
+			_fire_timer = fire_interval
+			return
+
 		var dir: Vector2 = _gun_world_dir
 		var eff_bspeed: float = _effective_stat(stats.bullet_speed, &"bullet_speed")
 		var split_hit_stacks: int = _trigger_stack(&"split_on_hit")
@@ -199,14 +252,24 @@ func _handle_firing(delta: float) -> void:
 			pulse_aoe_stacks,
 			pierce_stacks
 		)
+		var fired_any: bool = false
 
-		_fire_primary(dir, eff_bspeed, 1.0, split_fire_stacks, wave_sine_stacks, chaos_stacks, split_budget)
+		if _fire_primary(dir, eff_bspeed, 1.0, split_fire_stacks, wave_sine_stacks, chaos_stacks, split_budget):
+			fired_any = true
 
 		if fan_stacks > 0:
-			_fire_fan(dir, eff_bspeed, fan_stacks, wave_sine_stacks, chaos_stacks, split_budget)
+			if _fire_fan(dir, eff_bspeed, fan_stacks, wave_sine_stacks, chaos_stacks, split_budget):
+				fired_any = true
 
 		if pulse_stacks > 0:
-			_fire_pulse_ring(eff_bspeed, pulse_stacks, wave_sine_stacks, chaos_stacks, split_budget)
+			if _fire_pulse_ring(eff_bspeed, pulse_stacks, wave_sine_stacks, chaos_stacks, split_budget):
+				fired_any = true
+
+		if fired_any:
+			_fire_timer = 0.0
+			EventBus.player_fired.emit()
+		else:
+			_fire_timer = fire_interval
 
 
 func _fire_primary(
@@ -217,18 +280,23 @@ func _fire_primary(
 	wave_sine_stacks: int,
 	chaos_stacks: int,
 	split_budget: int
-) -> void:
-	_spawn_weapon_bullet(dir, bullet_speed, damage_scale, 0, wave_sine_stacks, chaos_stacks, split_budget)
+) -> bool:
+	var fired: bool = false
+	if _spawn_weapon_bullet(dir, bullet_speed, damage_scale, 0, wave_sine_stacks, chaos_stacks, split_budget):
+		fired = true
 
 	if split_fire_stacks <= 0:
-		return
+		return fired
 
 	var side_pairs: int = mini(1 + split_fire_stacks, 4)
 	for i: int in range(side_pairs):
 		var t: float = float(i + 1)
 		var spread: float = deg_to_rad(SPLIT_FIRE_ARC_DEGREES * t)
-		_spawn_weapon_bullet(dir.rotated(spread), bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget)
-		_spawn_weapon_bullet(dir.rotated(-spread), bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget)
+		if _spawn_weapon_bullet(dir.rotated(spread), bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget):
+			fired = true
+		if _spawn_weapon_bullet(dir.rotated(-spread), bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget):
+			fired = true
+	return fired
 
 
 func _fire_fan(
@@ -238,18 +306,22 @@ func _fire_fan(
 	wave_sine_stacks: int,
 	chaos_stacks: int,
 	split_budget: int
-) -> void:
+) -> bool:
+	var fired: bool = false
 	var count: int = mini(FAN_BASE_BULLETS + FAN_BULLETS_PER_STACK * (fan_stacks - 1), FAN_MAX_BULLETS)
 	if count < 2:
-		_spawn_weapon_bullet(dir, bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget)
-		return
+		if _spawn_weapon_bullet(dir, bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget):
+			fired = true
+		return fired
 
 	var spread_deg: float = FAN_BASE_SPREAD_DEGREES + float(fan_stacks - 1) * 4.0
 	var spread_rad: float = deg_to_rad(spread_deg)
 	for i: int in range(count):
 		var ratio: float = float(i) / float(count - 1)
 		var offset: float = lerpf(-spread_rad, spread_rad, ratio)
-		_spawn_weapon_bullet(dir.rotated(offset), bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget)
+		if _spawn_weapon_bullet(dir.rotated(offset), bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget):
+			fired = true
+	return fired
 
 
 func _fire_pulse_ring(
@@ -258,10 +330,11 @@ func _fire_pulse_ring(
 	wave_sine_stacks: int,
 	chaos_stacks: int,
 	split_budget: int
-) -> void:
+) -> bool:
+	var fired: bool = false
 	var count: int = mini(PULSE_BASE_BULLETS + PULSE_BULLETS_PER_STACK * (pulse_stacks - 1), PULSE_MAX_BULLETS)
 	if count <= 0:
-		return
+		return false
 
 	var rotation_offset: float = 0.0
 	if _modifier != null:
@@ -270,7 +343,9 @@ func _fire_pulse_ring(
 	for i: int in range(count):
 		var angle: float = rotation_offset + TAU * float(i) / float(count)
 		var dir: Vector2 = Vector2.from_angle(angle)
-		_spawn_weapon_bullet(dir, bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget)
+		if _spawn_weapon_bullet(dir, bullet_speed, SECONDARY_DAMAGE_SCALE, 1, wave_sine_stacks, chaos_stacks, split_budget):
+			fired = true
+	return fired
 
 
 func _spawn_weapon_bullet(
@@ -281,7 +356,10 @@ func _spawn_weapon_bullet(
 	wave_stacks: int,
 	chaos_stacks: int,
 	split_budget: int
-) -> void:
+) -> bool:
+	if _fire_spawn_budget <= 0:
+		return false
+
 	var shot_dir: Vector2 = _apply_random_direction(direction, chaos_stacks)
 	var behavior_kind: int = BulletManager.PLAYER_BEHAVIOR_STRAIGHT
 	var wave_amp: float = 0.0
@@ -293,7 +371,7 @@ func _spawn_weapon_bullet(
 		wave_freq = WAVE_BASE_FREQUENCY + float(wave_stacks - 1)
 		wave_phase = RandomService.next_float() * TAU
 
-	_bullet_manager.spawn_player_bullet_advanced(
+	var slot: int = _bullet_manager.spawn_player_bullet_advanced(
 		position,
 		shot_dir,
 		bullet_speed,
@@ -305,6 +383,12 @@ func _spawn_weapon_bullet(
 		split_budget,
 		damage_scale
 	)
+	if slot == -1:
+		_fire_spawn_budget = 0
+		return false
+
+	_fire_spawn_budget -= 1
+	return true
 
 
 func _apply_random_direction(direction: Vector2, chaos_stacks: int) -> Vector2:
@@ -330,7 +414,6 @@ func _compute_split_budget_from_stacks(
 		return 0
 
 	var behavior_stacks: int = 0
-	behavior_stacks += split_hit_stacks
 	behavior_stacks += split_fire_stacks
 	behavior_stacks += wave_sine_stacks
 	behavior_stacks += fan_stacks
@@ -339,7 +422,7 @@ func _compute_split_budget_from_stacks(
 	behavior_stacks += pulse_aoe_stacks
 	behavior_stacks += pierce_stacks
 
-	return clampi(1 + behavior_stacks / 2, 1, 10)
+	return clampi(split_hit_stacks + behavior_stacks / 3, 1, MAX_SPLIT_BUDGET)
 
 
 func _trigger_stack(trigger_id: StringName) -> int:
@@ -375,6 +458,29 @@ func _draw() -> void:
 	var p3: Vector2 = tip_base - gun_side * GUN_BARREL_HALF_WIDTH
 	draw_colored_polygon(PackedVector2Array([p0, p1, p2, p3]), gun_col)
 	draw_circle(mount, GUN_BODY_RADIUS, Color(1.0, 1.0, 1.0, 0.85))
+
+	if _bullet_pressure >= BULLET_PRESSURE_WARN_THRESHOLD or _weapon_overheat_timer > 0.0:
+		var pressure_t: float = inverse_lerp(BULLET_PRESSURE_WARN_THRESHOLD, 1.0, _bullet_pressure)
+		var ring_color: Color = PRESSURE_RING_WARN_COLOR.lerp(
+			PRESSURE_RING_OVERHEAT_COLOR,
+			clampf(pressure_t, 0.0, 1.0)
+		)
+		if _weapon_overheat_timer > 0.0:
+			var pulse: float = 0.65 + 0.35 * sin(Time.get_ticks_msec() * 0.018)
+			ring_color.a = clampf(ring_color.a * pulse, 0.0, 1.0)
+
+		var ring_radius: float = TRIANGLE_HALF * PRESSURE_RING_RADIUS_SCALE
+		var arc_end: float = -PI * 0.5 + TAU * _bullet_pressure
+		draw_arc(
+			Vector2.ZERO,
+			ring_radius,
+			-PI * 0.5,
+			arc_end,
+			PRESSURE_RING_POINTS,
+			ring_color,
+			PRESSURE_RING_WIDTH,
+			true
+		)
 
 
 func _on_bullet_hit_player(damage: float) -> void:
@@ -426,3 +532,15 @@ func refresh_stats() -> void:
 func apply_regen(hp_per_second: float, delta: float) -> void:
 	var effective_max: float = effective_max_hp()
 	stats.current_hp = minf(stats.current_hp + hp_per_second * delta, effective_max)
+
+
+func get_bullet_pressure() -> float:
+	return _bullet_pressure
+
+
+func is_weapon_overheated() -> bool:
+	return _weapon_overheat_timer > 0.0
+
+
+func get_weapon_overheat_remaining() -> float:
+	return maxf(_weapon_overheat_timer, 0.0)

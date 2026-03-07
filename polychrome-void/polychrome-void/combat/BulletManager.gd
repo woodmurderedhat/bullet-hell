@@ -26,6 +26,7 @@ const PLAYER_BULLET_HALF_H: float = 8.0
 
 ## Maximum alive time for a bullet before auto-expiry.
 const BULLET_LIFETIME: float = 6.0
+const MAX_SIM_DELTA: float = 0.05
 
 ## Off-screen position used to "hide" inactive MultiMesh instances.
 const HIDDEN_POS: Vector2 = Vector2(-9999.0, -9999.0)
@@ -410,8 +411,9 @@ func is_player_bullet_wave(slot: int) -> bool:
 
 
 func _process(delta: float) -> void:
-	_update_player_pool(delta)
-	_update_enemy_pool(delta)
+	var sim_delta: float = minf(delta, MAX_SIM_DELTA)
+	_update_player_pool(sim_delta)
+	_update_enemy_pool(sim_delta)
 
 
 func _update_player_pool(delta: float) -> void:

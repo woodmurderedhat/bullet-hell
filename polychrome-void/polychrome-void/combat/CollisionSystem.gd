@@ -9,7 +9,7 @@ const PLAYER_RADIUS: float = 25.0
 const SECONDARY_DAMAGE_SCALE: float = 0.65
 const SPLIT_ARC_DEGREES: float = 18.0
 const SPLIT_MAX_CHILDREN: int = 6
-const SPLIT_FREE_SLOT_RESERVE: int = 48
+const SPLIT_FREE_SLOT_RESERVE: int = 128
 const CHAIN_BASE_RADIUS: float = 120.0
 const PULSE_BASE_RADIUS: float = 56.0
 const CONTACT_TICK_SECONDS: float = 0.35
@@ -40,6 +40,7 @@ var _perf_last_enemy_overlap_checks: int = 0
 var _perf_last_queued_events: int = 0
 var _perf_last_resolved_targets: int = 0
 var _perf_last_resolved_damage: float = 0.0
+var _perf_last_active_player_bullets: int = 0
 
 
 func _ready() -> void:
@@ -111,6 +112,7 @@ func _process(delta: float) -> void:
 	_perf_last_queued_events = 0
 	_perf_last_resolved_targets = 0
 	_perf_last_resolved_damage = 0.0
+	_perf_last_active_player_bullets = 0
 	_check_enemy_bullets_vs_player()
 	_check_enemy_contact_vs_player(delta)
 	_check_player_bullets_vs_enemies()
@@ -193,6 +195,26 @@ func _check_player_bullets_vs_enemies() -> void:
 		return
 	_pending_enemy_damage.clear()
 
+	var has_live_enemy: bool = false
+	var enemy_min_x: float = INF
+	var enemy_min_y: float = INF
+	var enemy_max_x: float = -INF
+	var enemy_max_y: float = -INF
+	for enemy in _enemies:
+		if not is_instance_valid(enemy):
+			continue
+		var enemy_radius: float = float(enemy.collision_radius)
+		var ex: float = float(enemy.position.x)
+		var ey: float = float(enemy.position.y)
+		enemy_min_x = minf(enemy_min_x, ex - enemy_radius)
+		enemy_min_y = minf(enemy_min_y, ey - enemy_radius)
+		enemy_max_x = maxf(enemy_max_x, ex + enemy_radius)
+		enemy_max_y = maxf(enemy_max_y, ey + enemy_radius)
+		has_live_enemy = true
+
+	if not has_live_enemy:
+		return
+
 	var crit_stacks: int = _trigger_stack(&"crit_10")
 	var crit_has_double: bool = _trigger_stack(&"crit_multiplier_2x") > 0
 	var split_stacks: int = _trigger_stack(&"split_on_hit")
@@ -208,8 +230,11 @@ func _check_player_bullets_vs_enemies() -> void:
 		var base: int = i * SLOT
 		if pool[base + 5] == 0.0:
 			continue
+		_perf_last_active_player_bullets += 1
 		var bx: float = pool[base + 0]
 		var by: float = pool[base + 1]
+		if bx < enemy_min_x or bx > enemy_max_x or by < enemy_min_y or by > enemy_max_y:
+			continue
 		var bullet_pos: Vector2 = Vector2(bx, by)
 
 		for enemy in _enemies:
@@ -398,6 +423,10 @@ func get_perf_snapshot() -> Dictionary:
 		"collision_queued_damage_events": _perf_last_queued_events,
 		"collision_resolved_targets": _perf_last_resolved_targets,
 		"collision_resolved_damage": _perf_last_resolved_damage,
+		"collision_checks_per_active_player_bullet": (
+			float(_perf_last_enemy_overlap_checks) / float(_perf_last_active_player_bullets)
+			if _perf_last_active_player_bullets > 0 else 0.0
+		),
 	}
 
 

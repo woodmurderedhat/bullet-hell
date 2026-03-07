@@ -12,6 +12,9 @@ const COLOR_ACCENT_SCORE: Color = Color(1.0, 0.76, 0.28)
 const COLOR_ACCENT_ARENA: Color = Color(0.35, 0.84, 1.0)
 const COLOR_ACCENT_WAVE: Color = Color(0.95, 0.40, 1.0)
 const COLOR_ACCENT_TELEMETRY: Color = Color(0.62, 0.95, 0.90)
+const COLOR_ACCENT_WARNING: Color = Color(1.0, 0.82, 0.22)
+const COLOR_ACCENT_OVERHEAT: Color = Color(1.0, 0.32, 0.28)
+const BULLET_PRESSURE_WARN_THRESHOLD: float = 0.75
 
 var _player: Player = null
 var _score: int = 0
@@ -24,6 +27,7 @@ var _arena_label: Label
 var _wave_label: Label
 var _wave_label_timer: float = 0.0
 var _telemetry_label: Label
+var _weapon_state_label: Label
 
 
 func _ready() -> void:
@@ -84,7 +88,7 @@ func _build_ui() -> void:
 	add_child(_wave_label)
 
 	_telemetry_label = Label.new()
-	_telemetry_label.position = Vector2(16.0, 620.0)
+	_telemetry_label.position = Vector2(16.0, 592.0)
 	_telemetry_label.size = Vector2(420.0, 90.0)
 	_telemetry_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_telemetry_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
@@ -93,16 +97,49 @@ func _build_ui() -> void:
 	_telemetry_label.add_theme_color_override("font_color", COLOR_ACCENT_TELEMETRY)
 	add_child(_telemetry_label)
 
+	_weapon_state_label = Label.new()
+	_weapon_state_label.position = Vector2(490.0, 670.0)
+	_weapon_state_label.size = Vector2(300.0, 28.0)
+	_weapon_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_weapon_state_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_weapon_state_label.add_theme_font_size_override("font_size", 18)
+	_weapon_state_label.visible = false
+	add_child(_weapon_state_label)
+
 	_on_telemetry_updated(TelemetryService.get_snapshot())
 
 
 func _process(delta: float) -> void:
 	_update_hp_bar()
+	_update_weapon_state()
 
 	if _wave_label_timer > 0.0:
 		_wave_label_timer -= delta
 		if _wave_label_timer <= 0.0:
 			_wave_label.visible = false
+
+
+func _update_weapon_state() -> void:
+	if _player == null:
+		_weapon_state_label.visible = false
+		return
+
+	var overheated: bool = _player.is_weapon_overheated()
+	if overheated:
+		var remaining: float = _player.get_weapon_overheat_remaining()
+		_weapon_state_label.text = "WEAPON OVERHEAT %.1fs" % [remaining]
+		_weapon_state_label.add_theme_color_override("font_color", COLOR_ACCENT_OVERHEAT)
+		_weapon_state_label.visible = true
+		return
+
+	var pressure: float = _player.get_bullet_pressure()
+	if pressure >= BULLET_PRESSURE_WARN_THRESHOLD:
+		_weapon_state_label.text = "BULLET PRESSURE %d%%" % [int(round(pressure * 100.0))]
+		_weapon_state_label.add_theme_color_override("font_color", COLOR_ACCENT_WARNING)
+		_weapon_state_label.visible = true
+		return
+
+	_weapon_state_label.visible = false
 
 
 ## Bind the Player node so the HUD can read current HP.
@@ -162,12 +199,13 @@ func _on_telemetry_updated(snapshot: Dictionary) -> void:
 	var damage_dealt: float = float(snapshot.get("damage_dealt", 0.0))
 	var upgrades_chosen: int = int(snapshot.get("upgrades_chosen", 0))
 	var collision_ms: float = float(snapshot.get("collision_process_ms", 0.0))
+	var checks_per_bullet: float = float(snapshot.get("collision_checks_per_active_player_bullet", 0.0))
 	var resolved_targets: int = int(snapshot.get("collision_resolved_targets", 0))
 	var queued_events: int = int(snapshot.get("collision_queued_damage_events", 0))
 	var player_active_bullets: int = int(snapshot.get("player_bullets_active", 0))
 	var player_spawn_failures: int = int(snapshot.get("player_spawn_failures", 0))
 
-	_telemetry_label.text = "FPS %.1f | AVG %.1f | MIN %.1f\nT %.1fs  K %d  U %d\nDEAL %.0f  TAKE %.0f\nCOL %.2fms  Q %d  R %d\nPB %d  SF %d" % [
+	_telemetry_label.text = "FPS %.1f | AVG %.1f | MIN %.1f\nT %.1fs  K %d  U %d\nDEAL %.0f  TAKE %.0f\nCOL %.2fms  Q %d  R %d  CPB %.1f\nPB %d  SF %d" % [
 		fps_cur,
 		fps_avg,
 		fps_min,
@@ -179,6 +217,7 @@ func _on_telemetry_updated(snapshot: Dictionary) -> void:
 		collision_ms,
 		queued_events,
 		resolved_targets,
+		checks_per_bullet,
 		player_active_bullets,
 		player_spawn_failures,
 	]
