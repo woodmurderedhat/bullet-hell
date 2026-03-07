@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BulletWallPatternResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/BulletWallPatternResource.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"library_bullet_wall"
+fire_rate = 1.0
+bullet_speed = 165.0
+bullet_count = 16
+wall_interval = 1.5
+wall_width = 620.0
+wall_angle = 0.0
+advance_per_burst = 0.12

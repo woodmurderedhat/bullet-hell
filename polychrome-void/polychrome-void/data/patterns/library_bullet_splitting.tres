@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AdvancedTrajectoryPatternResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/AdvancedTrajectoryPatternResource.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"library_bullet_splitting"
+fire_rate = 1.0
+bullet_speed = 185.0
+mode = 2
+bullet_count = 1
+burst_interval = 1.1
+spread_degrees = 24.0
+track_target = true
+split_time = 0.48
+split_count = 3
+split_spread_degrees = 75.0
+split_speed_scale = 0.9
+split_depth = 1

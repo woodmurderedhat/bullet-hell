@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="DoubleSpiralPatternResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/DoubleSpiralPatternResource.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"library_double_spiral"
+fire_rate = 2.2
+bullet_speed = 185.0
+arms_per_spiral = 2
+angle_step = 0.19
+separation_angle = 3.141593

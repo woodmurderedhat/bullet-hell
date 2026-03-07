@@ -2,52 +2,28 @@
 
 [ext_resource type="Script" uid="uid://dlyd0s623ci4v" path="res://data/BossResource.gd" id="1_boss"]
 [ext_resource type="Script" uid="uid://cs3l0kqaprfk0" path="res://data/BossPhaseResource.gd" id="2_phase"]
-[ext_resource type="Script" uid="uid://yl4l6ucf6y08" path="res://data/ArcPatternResource.gd" id="3_arc"]
-[ext_resource type="Script" uid="uid://w0r4k2sfig38" path="res://data/CrossPatternResource.gd" id="4_cross"]
+[ext_resource type="Resource" path="res://data/patterns/library_fan_spread.tres" id="3_p0"]
+[ext_resource type="Resource" path="res://data/patterns/library_rotating_cross.tres" id="4_p1"]
 
-[sub_resource type="Resource" id="pattern_arc"]
-script = ExtResource("3_arc")
-bullet_count = 9
-arc_degrees = 90.0
-sweep_step = 0.32
-id = &"boss2_arc"
-bullet_speed = 210.0
+[ext_resource type="Resource" path="res://data/patterns/library_curved_bullets.tres" id="5_p2"]
 
 [sub_resource type="Resource" id="phase_0"]
 script = ExtResource("2_phase")
 hp_threshold = 0.65
-pattern = SubResource("pattern_arc")
+pattern = ExtResource("3_p0")
 phase_color = Color(0.4, 0.85, 1, 1)
-
-[sub_resource type="Resource" id="pattern_cross"]
-script = ExtResource("4_cross")
-burst_interval = 0.62
-angle_offset = 0.2
-id = &"boss2_cross"
-fire_rate = 1.3
-bullet_speed = 230.0
 
 [sub_resource type="Resource" id="phase_1"]
 script = ExtResource("2_phase")
 hp_threshold = 0.3
-pattern = SubResource("pattern_cross")
+pattern = ExtResource("4_p1")
 speed_multiplier = 1.22
 phase_color = Color(0.3, 0.4, 1, 1)
-
-[sub_resource type="Resource" id="pattern_arc_fast"]
-script = ExtResource("3_arc")
-burst_interval = 0.52
-bullet_count = 11
-arc_degrees = 130.0
-sweep_step = 0.45
-id = &"boss2_arc_fast"
-fire_rate = 1.7
-bullet_speed = 255.0
 
 [sub_resource type="Resource" id="phase_2"]
 script = ExtResource("2_phase")
 hp_threshold = 0.0
-pattern = SubResource("pattern_arc_fast")
+pattern = ExtResource("5_p2")
 speed_multiplier = 1.5
 phase_color = Color(0.7, 0.2, 1, 1)
 

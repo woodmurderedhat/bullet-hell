@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyResource" load_steps=3 format=3 uid="uid://orbit_burst_node"]
 
 [ext_resource type="Script" path="res://data/EnemyResource.gd" id="1_enemy"]
-[ext_resource type="Resource" path="res://data/patterns/radial_burst_03.tres" id="2_pattern"]
+[ext_resource type="Resource" path="res://data/patterns/library_rotating_radial.tres" id="2_pattern"]
 
 [resource]
 script = ExtResource("1_enemy")

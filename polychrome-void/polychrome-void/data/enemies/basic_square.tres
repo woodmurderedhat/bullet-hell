@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyResource" load_steps=3 format=3 uid="uid://basic_square"]
 
 [ext_resource type="Script" path="res://data/EnemyResource.gd" id="1_enemy"]
-[ext_resource type="Resource" path="res://data/patterns/spiral_01.tres" id="2_pattern"]
+[ext_resource type="Resource" path="res://data/patterns/library_shotgun_spread.tres" id="2_pattern"]
 
 [resource]
 script = ExtResource("1_enemy")

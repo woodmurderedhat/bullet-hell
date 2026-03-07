@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="FanSpreadPatternResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/FanSpreadPatternResource.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"library_fan_spread"
+fire_rate = 1.0
+bullet_speed = 215.0
+bullet_count = 6
+spread_degrees = 65.0
+burst_interval = 0.62
+track_target = true

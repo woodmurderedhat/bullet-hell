@@ -2,50 +2,28 @@
 
 [ext_resource type="Script" uid="uid://dlyd0s623ci4v" path="res://data/BossResource.gd" id="1_boss"]
 [ext_resource type="Script" uid="uid://cs3l0kqaprfk0" path="res://data/BossPhaseResource.gd" id="2_phase"]
-[ext_resource type="Script" uid="uid://dbqcy25l41cg4" path="res://data/SpiralPatternResource.gd" id="3_sp"]
-[ext_resource type="Script" uid="uid://2jxjqou2r37w" path="res://data/RadialBurstPatternResource.gd" id="4_rb"]
+[ext_resource type="Resource" path="res://data/patterns/library_rotating_radial.tres" id="3_p0"]
+[ext_resource type="Resource" path="res://data/patterns/library_spiral_stream.tres" id="4_p1"]
 
-[sub_resource type="Resource" id="pattern_spiral"]
-script = ExtResource("3_sp")
-angle_step = 0.38
-arms = 7
-id = &"boss_08_spiral"
-fire_rate = 4.2
-bullet_speed = 250.0
+[ext_resource type="Resource" path="res://data/patterns/library_homing_missiles.tres" id="5_p2"]
 
 [sub_resource type="Resource" id="phase_0"]
 script = ExtResource("2_phase")
 hp_threshold = 0.7
-pattern = SubResource("pattern_spiral")
+pattern = ExtResource("3_p0")
 phase_color = Color(0.76, 0.94, 0.28, 1)
-
-[sub_resource type="Resource" id="pattern_ring"]
-script = ExtResource("4_rb")
-bullet_count = 24
-burst_interval = 0.74
-id = &"boss_08_ring"
-fire_rate = 1.0
-bullet_speed = 272.0
 
 [sub_resource type="Resource" id="phase_1"]
 script = ExtResource("2_phase")
 hp_threshold = 0.36
-pattern = SubResource("pattern_ring")
+pattern = ExtResource("4_p1")
 speed_multiplier = 1.5
 phase_color = Color(0.52, 0.82, 0.16, 1)
-
-[sub_resource type="Resource" id="pattern_final"]
-script = ExtResource("3_sp")
-angle_step = 0.5
-arms = 9
-id = &"boss_08_final"
-fire_rate = 5.2
-bullet_speed = 294.0
 
 [sub_resource type="Resource" id="phase_2"]
 script = ExtResource("2_phase")
 hp_threshold = 0.0
-pattern = SubResource("pattern_final")
+pattern = ExtResource("5_p2")
 speed_multiplier = 2.0
 phase_color = Color(0.28, 0.66, 0.08, 1)
 

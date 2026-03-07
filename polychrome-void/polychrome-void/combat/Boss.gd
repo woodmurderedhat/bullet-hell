@@ -188,3 +188,9 @@ func get_projectile_damage() -> float:
 
 func is_boss_unit() -> bool:
 	return true
+
+
+func get_target_position() -> Vector2:
+	if _player_ref == null:
+		return position
+	return _player_ref.position

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PredictiveShotPatternResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/PredictiveShotPatternResource.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"library_predictive_shot"
+fire_rate = 1.0
+bullet_speed = 245.0
+shots_per_burst = 1
+burst_interval = 0.9
+max_lead_time = 1.2
+fallback_to_aimed = true

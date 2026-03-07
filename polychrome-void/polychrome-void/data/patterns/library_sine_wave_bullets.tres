@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AdvancedTrajectoryPatternResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/AdvancedTrajectoryPatternResource.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"library_sine_wave_bullets"
+fire_rate = 1.0
+bullet_speed = 190.0
+mode = 0
+bullet_count = 3
+burst_interval = 0.75
+spread_degrees = 40.0
+track_target = true
+sine_amplitude = 32.0
+sine_frequency = 9.0
+sine_phase_step = 0.7

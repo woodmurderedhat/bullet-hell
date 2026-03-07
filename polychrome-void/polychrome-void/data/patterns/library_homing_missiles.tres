@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AdvancedTrajectoryPatternResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/AdvancedTrajectoryPatternResource.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"library_homing_missiles"
+fire_rate = 1.0
+bullet_speed = 175.0
+mode = 3
+bullet_count = 2
+burst_interval = 1.0
+spread_degrees = 28.0
+track_target = true
+turn_rate = 2.6
+homing_delay = 0.42

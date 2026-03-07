@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RingPatternResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/RingPatternResource.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"library_expanding_ring"
+fire_rate = 1.0
+bullet_speed = 170.0
+bullet_count = 16
+ring_interval = 1.25
+spawn_radius = 0.0
+ring_mode = 0
