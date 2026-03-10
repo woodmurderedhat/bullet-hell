@@ -11,7 +11,7 @@ enum VisualMode {
 
 @export var visual_mode: VisualMode = VisualMode.GEOMETRY
 @export var visual_config: PlayerVisualConfig = null
-@export var auto_visual_from_config: bool = true
+@export var auto_visual_from_config: bool = false
 
 const SPRITE_FRAME_SIZE: Vector2i = Vector2i(32, 32)
 

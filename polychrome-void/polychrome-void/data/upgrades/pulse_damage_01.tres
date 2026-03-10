@@ -10,6 +10,6 @@ tags = [&"Pulse"]
 stat_additive = {"bullet_damage": 4.0}
 stat_multiplicative = {}
 triggers = []
-stack_limit = 4
+stack_limit = 3
 display_name = "Pulse Charge"
 description = "+4 bullet damage per hit."

@@ -10,6 +10,6 @@ tags = [&"Vector"]
 stat_additive = {"speed": 25.0}
 stat_multiplicative = {}
 triggers = []
-stack_limit = 5
+stack_limit = 3
 display_name = "Velocity Boost"
 description = "+25 movement speed. Evade patterns with greater ease."

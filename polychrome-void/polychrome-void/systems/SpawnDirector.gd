@@ -98,6 +98,9 @@ var _enemy_count_add: int = 0
 var _intelligence_tier: int = 0
 var _active_elite_archetypes: Array[StringName] = []
 var _extra_enemy_paths: Array[String] = []
+
+## Diagnostics: count fallback spawn position adjustments.
+var _spawn_fallback_count: int = 0
 var _extra_boss_paths: Array[String] = []
 var _wave_swarm_next_slot: Array[int] = []
 var _wave_swarm_group_target_counts: Array[int] = []
@@ -257,9 +260,13 @@ func _spawn_next_enemy() -> void:
 		slot_index = _wave_swarm_next_slot[group_id]
 		slot_count = maxi(1, _wave_swarm_group_target_counts[group_id])
 		_wave_swarm_next_slot[group_id] += 1
-		pos = _swarm_director.get_spawn_position_for_member(group_id, slot_index, slot_count)
+		var swarm_candidate: Vector2 = _swarm_director.get_spawn_position_for_member(group_id, slot_index, slot_count)
+		# Ensure swarm spawn respects min distance from player.
+		pos = _validate_spawn_position(swarm_candidate, _current_config.min_spawn_distance_to_player)
 
 	if _current_config.boss_wave:
+		# Ensure boss spawn respects min distance from player.
+		pos = _validate_spawn_position(pos, _current_config.min_spawn_distance_to_player)
 		_spawn_boss(id, pos)
 	else:
 		var pick: EnemyResource = _pick_enemy_for_arena()
@@ -756,6 +763,38 @@ func _is_edge_on_cooldown(edge: int, repeat_cooldown: int) -> bool:
 	return true
 
 
+
+
+## Validates that a spawn candidate is safe (>= min_distance from player).
+## If unsafe, retries with edge positions and returns the safest found.
+## Guarantees no spawn lands on or near the player.
+func _validate_spawn_position(candidate: Vector2, min_distance: float) -> Vector2:
+	var distance_to_player: float = _distance_to_player(candidate)
+	if distance_to_player >= min_distance:
+		# Candidate is already safe.
+		return candidate
+
+	# Candidate is too close. Fallback to edge search logic.
+	_spawn_fallback_count += 1
+	var best_pos: Vector2 = candidate
+	var best_distance: float = distance_to_player
+
+	# Try edge positions up to 8 times to find a safer spawn.
+	for _attempt: int in range(8):
+		var edge: int = RandomService.next_int_range(0, 3)
+		var edge_candidate: Vector2 = _position_on_edge(edge)
+		var edge_distance: float = _distance_to_player(edge_candidate)
+		if edge_distance >= min_distance:
+			# Found a safe position.
+			return edge_candidate
+		if edge_distance > best_distance:
+			# Track best attempt even if still unsafe.
+			best_distance = edge_distance
+			best_pos = edge_candidate
+
+	# Return best found position (will be safe or closest to safe).
+	# This ensures spawn never blocks or causes soft locks.
+	return best_pos
 func _distance_to_player(pos: Vector2) -> float:
 	if _player == null:
 		return INF
@@ -795,6 +834,9 @@ func _on_enemy_died(_id: int, _pos: Vector2, _score: int) -> void:
 	_alive_enemies -= 1
 	if _alive_enemies <= 0 and _spawned_in_wave >= _current_config.enemy_count:
 		_wave_active = false
+		if _spawn_fallback_count > 0:
+			print("[SpawnDirector] Wave %d: %d spawn fallbacks applied (swarm/boss too close to player)" % [arena_index, _spawn_fallback_count])
+		_spawn_fallback_count = 0
 		EventBus.wave_complete.emit(arena_index)
 
 

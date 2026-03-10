@@ -70,6 +70,7 @@ func _ready() -> void:
 	# Connect EventBus signals.
 	EventBus.player_died.connect(_on_player_died)
 	EventBus.upgrade_chosen.connect(_on_upgrade_chosen)
+	EventBus.upgrade_skipped.connect(_on_upgrade_skipped)
 	EventBus.score_changed.connect(_on_score_changed)
 	EventBus.wave_complete.connect(_on_wave_complete)
 
@@ -340,6 +341,18 @@ func _on_upgrade_chosen(res: Resource) -> void:
 	)
 
 	# Delay briefly then begin the next wave.
+	await get_tree().create_timer(0.3).timeout
+	if _run_active:
+		_refresh_enemy_boss_damage_scaling(_spawn_director.arena_index)
+		_spawn_director.begin_next_wave()
+
+
+func _on_upgrade_skipped() -> void:
+	if not _run_active:
+		return
+	_player.set_gameplay_input_enabled(true)
+
+	# Keep run flow advancing even when every upgrade has reached its stack cap.
 	await get_tree().create_timer(0.3).timeout
 	if _run_active:
 		_refresh_enemy_boss_damage_scaling(_spawn_director.arena_index)

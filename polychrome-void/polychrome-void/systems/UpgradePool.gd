@@ -87,6 +87,7 @@ func generate_offer(
 	_sync_meta_unlocks()
 	var available: Array[UpgradeResource] = _build_available_pool(modifier)
 	if available.is_empty():
+		push_warning("UpgradePool: no eligible upgrades available for current run state.")
 		return []
 
 	var picked: Array[UpgradeResource] = []
@@ -101,6 +102,11 @@ func generate_offer(
 			break
 		picked.append(chosen as UpgradeResource)
 		pool_copy.erase(chosen)
+
+	if picked.size() < count:
+		push_warning(
+			"UpgradePool: generated %d/%d offers (eligible pool: %d)." % [picked.size(), count, available.size()]
+		)
 
 	return picked
 

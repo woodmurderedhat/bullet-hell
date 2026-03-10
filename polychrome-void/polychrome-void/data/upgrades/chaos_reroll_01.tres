@@ -10,6 +10,6 @@ tags = [&"Chaos"]
 stat_additive = {}
 stat_multiplicative = {}
 triggers = [&"reroll_once"]
-stack_limit = 5
+stack_limit = 3
 display_name = "Quantum Flip"
 description = "Gain one free upgrade reroll per arena picker."

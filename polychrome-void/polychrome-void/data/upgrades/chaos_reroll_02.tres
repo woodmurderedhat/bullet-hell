@@ -10,6 +10,6 @@ tags = [&"Chaos"]
 stat_additive = {}
 stat_multiplicative = {}
 triggers = [&"reroll_once"]
-stack_limit = 5
+stack_limit = 3
 display_name = "Shuffle Protocol"
 description = "Additional reroll charge. Stack for multiple rerolls."

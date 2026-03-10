@@ -10,6 +10,6 @@ tags = [&"Entropy"]
 stat_additive = {"bullet_damage": 4.0}
 stat_multiplicative = {}
 triggers = [&"random_direction"]
-stack_limit = 4
+stack_limit = 3
 display_name = "Scatter Flux"
 description = "+4 damage. Controlled chaos spreads more bullets."

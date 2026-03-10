@@ -10,6 +10,6 @@ tags = [&"Vector"]
 stat_additive = {"bullet_speed": 60.0}
 stat_multiplicative = {}
 triggers = []
-stack_limit = 5
+stack_limit = 3
 display_name = "Kinetic Surge"
 description = "+60 bullet speed. Your shots cross the arena faster."

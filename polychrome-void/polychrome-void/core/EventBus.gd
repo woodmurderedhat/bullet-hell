@@ -51,6 +51,9 @@ signal boss_wave_started(arena_index: int)
 ## Emitted by UpgradePicker when the player selects an upgrade card.
 signal upgrade_chosen(resource: Resource)
 
+## Emitted by UpgradePicker when no eligible upgrades remain.
+signal upgrade_skipped()
+
 # ---------------------------------------------------------------------------
 # Run lifecycle signals
 # ---------------------------------------------------------------------------

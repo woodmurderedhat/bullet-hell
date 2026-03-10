@@ -112,7 +112,10 @@ func _apply_visual_mode() -> void:
 		return
 	_visual_sprite.visible = (visual_mode == VisualMode.SPRITE)
 	if visual_mode == VisualMode.SPRITE:
+		_visual_sprite.scale = Vector2(2.0, 2.0)
 		_apply_sprite_from_resource()
+	else:
+		_visual_sprite.scale = Vector2.ONE
 	queue_redraw()
 
 

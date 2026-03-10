@@ -86,6 +86,12 @@ func _show_picker() -> void:
 
 	_offers = _upgrade_pool.generate_offer(3, tags, _modifier_component)
 
+	if _offers.is_empty():
+		visible = false
+		push_warning("UpgradePicker: no eligible upgrades available; skipping upgrade step.")
+		EventBus.upgrade_skipped.emit()
+		return
+
 	var total_w: float = 3.0 * CARD_SIZE.x + 2.0 * CARD_GAP
 	var start_x: float = (1280.0 - total_w) * 0.5
 
