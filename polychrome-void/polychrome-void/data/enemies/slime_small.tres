@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="EnemyResource" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://data/EnemyResource.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://data/patterns/library_aimed_shot.tres" id="2_pattern"]
+[ext_resource type="Resource" path="res://data/enemies/slime_mote.tres" id="3_child"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = &"slime_small"
+base_hp = 60.0
+speed = 92.0
+projectile_damage = 6.0
+contact_damage = 7.0
+collision_radius = 17.0
+pattern = ExtResource("2_pattern")
+movement_type = 0
+lateral_weight = 0.2
+preferred_range = 110.0
+dash_interval = 1.8
+dash_duration = 0.28
+dash_speed_multiplier = 2.0
+wave_frequency = 1.8
+wave_amplitude = 22.0
+color = Color(0.58, 0.96, 0.66, 1)
+score_value = 28
+split_child_resource = ExtResource("3_child")
+split_child_count = 2
+split_spawn_radius = 40.0

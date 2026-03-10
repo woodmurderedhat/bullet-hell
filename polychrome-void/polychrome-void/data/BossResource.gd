@@ -40,6 +40,16 @@ extends Resource
 ## Score reward when fully defeated.
 @export var score_value: int = 500
 
+## Enemy resource spawned when this boss fractures on death.
+## Leave empty for bosses that do not split.
+@export var split_child_resource: EnemyResource = null
+
+## Number of child enemies spawned when this boss dies.
+@export_range(0, 8, 1) var split_child_count: int = 0
+
+## Distance in pixels used to place split children around the death point.
+@export var split_spawn_radius: float = 56.0
+
 ## Phase definitions ordered from first to last.
 ## Phases are evaluated in order; when current_hp / max_hp drops below
 ## phases[i].hp_threshold, the boss transitions to phases[i+1].

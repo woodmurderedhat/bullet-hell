@@ -78,3 +78,13 @@ enum MovementType {
 
 ## Score reward when killed.
 @export var score_value: int = 10
+
+## Enemy resource spawned when this enemy fractures on death.
+## Leave empty for enemies that do not split.
+@export var split_child_resource: EnemyResource = null
+
+## Number of child enemies spawned when this enemy dies.
+@export_range(0, 8, 1) var split_child_count: int = 0
+
+## Distance in pixels used to place split children around the death point.
+@export var split_spawn_radius: float = 32.0

@@ -62,6 +62,7 @@ const RES_SENTRY_CORE     := preload("res://data/enemies/sentry_core.tres")
 const RES_BOSS_01        := preload("res://data/bosses/boss_01.tres")
 const RES_BOSS_02        := preload("res://data/bosses/boss_02.tres")
 const RES_BOSS_03        := preload("res://data/bosses/boss_03.tres")
+const RES_BOSS_SLIME     := preload("res://data/bosses/slime_colossus.tres")
 
 const SCENE_ENEMY := preload("res://scenes/Enemy.tscn")
 const SCENE_BOSS  := preload("res://scenes/Boss.tscn")
@@ -108,6 +109,7 @@ var _recent_swarm_patterns: Array[int] = []
 var _recent_origin_regions: Array[int] = []
 var _recent_spawn_mix_modes: Array[int] = []
 var _recent_edge_sides: Array[int] = []
+var _split_spawn_configs: Dictionary = {}
 
 
 ## Call from Main once all dependencies are available.
@@ -162,6 +164,7 @@ func clear_active_entities() -> void:
 	_spawn_timer = 0.0
 	_next_spawn_interval = 0.0
 	_current_config = null
+	_split_spawn_configs.clear()
 	_wave_swarm_next_slot.clear()
 	_wave_swarm_group_target_counts.clear()
 
@@ -284,9 +287,22 @@ func _spawn_enemy(
 	slot_count: int,
 	register_in_swarm: bool
 ) -> void:
+	var elite_archetype: StringName = _pick_elite_archetype_for_spawn()
+	_spawn_enemy_instance(id, pos, res, group_id, slot_index, slot_count, register_in_swarm, elite_archetype)
+
+
+func _spawn_enemy_instance(
+	id: int,
+	pos: Vector2,
+	res: EnemyResource,
+	group_id: int,
+	slot_index: int,
+	slot_count: int,
+	register_in_swarm: bool,
+	elite_archetype: StringName
+) -> void:
 	var enemy: Enemy = SCENE_ENEMY.instantiate() as Enemy
 	var scaled_hp: float = res.base_hp * _hp_scale_for_arena(arena_index) * _enemy_hp_multiplier
-	var elite_archetype: StringName = _pick_elite_archetype_for_spawn()
 	enemy.setup(
 		res,
 		scaled_hp,
@@ -322,6 +338,7 @@ func _spawn_enemy(
 		_enemy_fire_rate_scale(elite_archetype),
 		_enemy_bullet_speed_scale(elite_archetype)
 	)
+	_register_split_spawn(id, res.split_child_resource, res.split_child_count, res.split_spawn_radius)
 
 
 func _spawn_boss(id: int, pos: Vector2) -> void:
@@ -344,6 +361,51 @@ func _spawn_boss(id: int, pos: Vector2) -> void:
 	boss.position = pos
 	_scene_root.add_child(boss)
 	_collision_system.register_enemy(boss)
+	_register_split_spawn(id, res.split_child_resource, res.split_child_count, res.split_spawn_radius)
+
+
+func _register_split_spawn(
+	id: int,
+	child_resource: EnemyResource,
+	child_count: int,
+	spawn_radius: float
+) -> void:
+	_split_spawn_configs.erase(id)
+	if child_resource == null or child_count <= 0:
+		return
+	_split_spawn_configs[id] = {
+		"child_resource": child_resource,
+		"child_count": child_count,
+		"spawn_radius": maxf(8.0, spawn_radius),
+	}
+
+
+func _spawn_split_children(origin: Vector2, split_cfg: Dictionary) -> void:
+	var child_resource: EnemyResource = split_cfg.get("child_resource") as EnemyResource
+	if child_resource == null:
+		return
+
+	var child_count: int = int(split_cfg.get("child_count", 0))
+	if child_count <= 0:
+		return
+
+	var spawn_radius: float = float(split_cfg.get("spawn_radius", child_resource.split_spawn_radius))
+	var base_angle: float = RandomService.next_float() * TAU
+	for child_index: int in range(child_count):
+		var child_id: int = _next_enemy_id
+		_next_enemy_id += 1
+		var angle: float = base_angle + (TAU * float(child_index) / float(child_count))
+		var offset: Vector2 = Vector2.RIGHT.rotated(angle) * spawn_radius
+		var child_pos: Vector2 = _clamp_position_to_arena(origin + offset)
+		_spawn_enemy_instance(child_id, child_pos, child_resource, 0, 0, 1, false, &"")
+		_alive_enemies += 1
+
+
+func _clamp_position_to_arena(pos: Vector2) -> Vector2:
+	return Vector2(
+		clampf(pos.x, arena_min.x, arena_max.x),
+		clampf(pos.y, arena_min.y, arena_max.y)
+	)
 
 
 func _pick_enemy_for_arena() -> EnemyResource:
@@ -367,6 +429,9 @@ func _hp_scale_for_arena(arena_level: int) -> float:
 
 
 func _pick_boss_for_arena(current_arena: int) -> BossResource:
+	if current_arena == total_levels_through_arena(1):
+		return RES_BOSS_SLIME
+
 	var boss_cycle: Array[BossResource] = _boss_roster
 	if boss_cycle.is_empty():
 		return RES_BOSS_01
@@ -832,6 +897,10 @@ func _on_enemy_died(_id: int, _pos: Vector2, _score: int) -> void:
 	if not _wave_active:
 		return
 	_alive_enemies -= 1
+	var split_cfg: Dictionary = _split_spawn_configs.get(_id, {})
+	_split_spawn_configs.erase(_id)
+	if not split_cfg.is_empty():
+		_spawn_split_children(_pos, split_cfg)
 	if _alive_enemies <= 0 and _spawned_in_wave >= _current_config.enemy_count:
 		_wave_active = false
 		if _spawn_fallback_count > 0:
