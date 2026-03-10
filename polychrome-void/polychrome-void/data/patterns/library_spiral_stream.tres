@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 id = &"library_spiral_stream"
-fire_rate = 2.2
-bullet_speed = 180.0
+fire_rate = 1.870
+bullet_speed = 153.000
 angle_step = 0.21
 arms = 3

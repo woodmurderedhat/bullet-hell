@@ -450,20 +450,21 @@ func _pick_elite_archetype_for_spawn() -> StringName:
 
 
 func _enemy_fire_rate_scale(elite_archetype: StringName) -> float:
-	var scale: float = 1.0 + float(_intelligence_tier) * 0.08
+	var scale: float = 1.0 + float(_intelligence_tier) * 0.068
 	if elite_archetype == &"suppressor":
-		scale += 0.18
+		scale += 0.153
 	elif elite_archetype == &"hunter":
-		scale += 0.10
+		scale += 0.085
+	scale *= 0.5
 	return maxf(0.2, scale)
 
 
 func _enemy_bullet_speed_scale(elite_archetype: StringName) -> float:
-	var scale: float = 1.0 + float(_intelligence_tier) * 0.05
+	var scale: float = 1.0 + float(_intelligence_tier) * 0.0425
 	if elite_archetype == &"interceptor":
-		scale += 0.20
+		scale += 0.17
 	elif elite_archetype == &"splitter":
-		scale += 0.08
+		scale += 0.068
 	return maxf(0.2, scale)
 
 
@@ -472,11 +473,11 @@ func _boss_movement_scale() -> float:
 
 
 func _boss_fire_rate_scale() -> float:
-	return 1.0 + float(_intelligence_tier) * 0.11
+	return 1.0 + float(_intelligence_tier) * 0.0935
 
 
 func _boss_bullet_speed_scale() -> float:
-	return 1.0 + float(_intelligence_tier) * 0.07
+	return 1.0 + float(_intelligence_tier) * 0.0595
 
 
 func _random_edge_position() -> Vector2:

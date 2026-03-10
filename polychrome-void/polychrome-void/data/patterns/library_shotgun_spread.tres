@@ -6,8 +6,8 @@
 script = ExtResource("1_script")
 id = &"library_shotgun_spread"
 fire_rate = 1.0
-bullet_speed = 205.0
+bullet_speed = 174.250
 pellet_count = 9
 spread_degrees = 88.0
-burst_interval = 0.95
+burst_interval = 1.118
 jitter_degrees = 9.0

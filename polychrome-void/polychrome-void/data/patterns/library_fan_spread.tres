@@ -6,8 +6,8 @@
 script = ExtResource("1_script")
 id = &"library_fan_spread"
 fire_rate = 1.0
-bullet_speed = 215.0
+bullet_speed = 182.750
 bullet_count = 6
 spread_degrees = 65.0
-burst_interval = 0.62
+burst_interval = 0.729
 track_target = true

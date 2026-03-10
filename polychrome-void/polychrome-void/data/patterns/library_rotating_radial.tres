@@ -6,7 +6,7 @@
 script = ExtResource("1_script")
 id = &"library_rotating_radial"
 fire_rate = 1.0
-bullet_speed = 200.0
+bullet_speed = 170.000
 bullet_count = 12
-burst_interval = 0.9
+burst_interval = 1.059
 rotation_step = 0.28

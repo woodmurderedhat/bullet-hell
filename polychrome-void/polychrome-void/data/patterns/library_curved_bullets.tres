@@ -6,10 +6,10 @@
 script = ExtResource("1_script")
 id = &"library_curved_bullets"
 fire_rate = 1.0
-bullet_speed = 195.0
+bullet_speed = 165.750
 mode = 1
 bullet_count = 4
-burst_interval = 0.78
+burst_interval = 0.918
 spread_degrees = 34.0
 track_target = true
 turn_rate = 1.8

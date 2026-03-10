@@ -6,7 +6,7 @@
 script = ExtResource("1_script")
 id = &"library_rotating_cross"
 fire_rate = 1.0
-bullet_speed = 210.0
-burst_interval = 0.5
+bullet_speed = 178.500
+burst_interval = 0.588
 arms = 4
 angle_step = 0.24

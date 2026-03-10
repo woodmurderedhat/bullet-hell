@@ -6,10 +6,10 @@
 script = ExtResource("1_script")
 id = &"library_sine_wave_bullets"
 fire_rate = 1.0
-bullet_speed = 190.0
+bullet_speed = 161.500
 mode = 0
 bullet_count = 3
-burst_interval = 0.75
+burst_interval = 0.882
 spread_degrees = 40.0
 track_target = true
 sine_amplitude = 32.0

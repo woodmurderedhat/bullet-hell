@@ -6,9 +6,9 @@
 script = ExtResource("1_script")
 id = &"library_bullet_grid"
 fire_rate = 1.0
-bullet_speed = 160.0
+bullet_speed = 136.000
 rows = 3
 columns = 6
 spacing = 30.0
-burst_interval = 1.8
+burst_interval = 2.118
 grid_angle = 0.0

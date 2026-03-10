@@ -6,10 +6,10 @@
 script = ExtResource("1_script")
 id = &"library_homing_missiles"
 fire_rate = 1.0
-bullet_speed = 175.0
+bullet_speed = 148.750
 mode = 3
 bullet_count = 2
-burst_interval = 1.0
+burst_interval = 1.176
 spread_degrees = 28.0
 track_target = true
 turn_rate = 2.6
