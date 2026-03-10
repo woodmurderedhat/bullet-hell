@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://dk7dwjuro1b76"]
+[gd_scene format=3 uid="uid://dk7dwjuro1b76"]
 
 [ext_resource type="Script" uid="uid://stqh2qqjy0i1" path="res://scenes/Main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://b3wsx8sa44cfl" path="res://combat/BulletManager.gd" id="2_bm"]
@@ -14,13 +14,13 @@
 [ext_resource type="Script" uid="uid://p1u7jbi6gfvd" path="res://systems/SwarmDirector.gd" id="12_sw"]
 [ext_resource type="Resource" path="res://data/player_visual_default.tres" id="13_pvc"]
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" unique_id=1946852033]
 script = ExtResource("1_main")
 
-[node name="ArenaBackdrop" type="CanvasLayer" parent="."]
+[node name="ArenaBackdrop" type="CanvasLayer" parent="." unique_id=1590508193]
 layer = -10
 
-[node name="BlackRect" type="ColorRect" parent="ArenaBackdrop"]
+[node name="BlackRect" type="ColorRect" parent="ArenaBackdrop" unique_id=270445275]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -28,44 +28,43 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0, 0, 0, 1)
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="." unique_id=2147162247]
 position = Vector2(640, 360)
 
-[node name="BulletManager" type="Node2D" parent="."]
+[node name="BulletManager" type="Node2D" parent="." unique_id=916578323]
 script = ExtResource("2_bm")
 
-[node name="CollisionSystem" type="Node" parent="."]
+[node name="CollisionSystem" type="Node" parent="." unique_id=1467397170]
 script = ExtResource("3_cs")
 
-[node name="ShieldSystem" type="Node2D" parent="."]
+[node name="ShieldSystem" type="Node2D" parent="." unique_id=2012404231]
 script = ExtResource("11_ss")
 
-[node name="SpawnDirector" type="Node" parent="."]
+[node name="SpawnDirector" type="Node" parent="." unique_id=1989016204]
 script = ExtResource("4_sd")
 
-[node name="SwarmDirector" type="Node" parent="."]
+[node name="SwarmDirector" type="Node" parent="." unique_id=1650238771]
 script = ExtResource("12_sw")
 
-[node name="UpgradePool" type="Node" parent="."]
+[node name="UpgradePool" type="Node" parent="." unique_id=2022443242]
 script = ExtResource("5_up")
 
-[node name="Player" type="Node2D" parent="."]
+[node name="Player" type="Node2D" parent="." unique_id=459051373]
 position = Vector2(640, 360)
 script = ExtResource("6_pl")
 visual_config = ExtResource("13_pvc")
 
-[node name="VisualSprite" type="Sprite2D" parent="Player"]
+[node name="VisualSprite" type="Sprite2D" parent="Player" unique_id=1986804555]
 visible = false
-centered = true
 
-[node name="ModifierComponent" type="Node" parent="Player"]
+[node name="ModifierComponent" type="Node" parent="Player" unique_id=779606612]
 script = ExtResource("7_mc")
 
-[node name="HUD" type="CanvasLayer" parent="."]
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1490231174]
 script = ExtResource("8_hud")
 
-[node name="UpgradePicker" type="CanvasLayer" parent="."]
+[node name="UpgradePicker" type="CanvasLayer" parent="." unique_id=1991861827]
 script = ExtResource("9_upk")
 
-[node name="MetaMenu" type="CanvasLayer" parent="."]
+[node name="MetaMenu" type="CanvasLayer" parent="." unique_id=1036399110]
 script = ExtResource("10_mm")
