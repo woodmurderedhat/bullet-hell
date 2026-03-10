@@ -8,6 +8,6 @@ id = &"elite_suppressor"
 display_name = "ELITE ARCHETYPE: SUPPRESSOR"
 description = "Enables suppressor elites with heavier firing cadence."
 category = 2
-cost = 110
+cost = 95
 required_unlock_ids = [&"enemy_pack_3"]
 elite_archetype = &"suppressor"

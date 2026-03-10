@@ -238,9 +238,10 @@ func _on_unlock_pressed(unlock_id: StringName) -> void:
 
 
 func _on_run_ended(result: Dictionary) -> void:
-	# Award meta currency based on score.
+	# Award meta currency based on score. Divisor tuned so an average mid-run
+	# earns roughly 10-15 currency, putting the cheapest unlock at ~3-4 runs.
 	var score: int = int(result.get("score", 0))
-	var reward: int = max(1, score / 10)
+	var reward: int = max(1, score / 250)
 	SaveService.add_currency(reward)
 	EventBus.meta_reward_earned.emit(reward, &"")
 	refresh_menu()

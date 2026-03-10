@@ -8,6 +8,6 @@ id = &"elite_flanker"
 display_name = "ELITE ARCHETYPE: FLANKER"
 description = "Enables elite flankers with stronger lateral pressure."
 category = 2
-cost = 90
+cost = 75
 required_unlock_ids = [&"enemy_pack_3"]
 elite_archetype = &"flanker"

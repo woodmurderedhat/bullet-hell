@@ -8,6 +8,6 @@ id = &"elite_zoner"
 display_name = "ELITE ARCHETYPE: ZONER"
 description = "Enables zoners that keep dangerous spacing from the player."
 category = 2
-cost = 160
+cost = 135
 required_unlock_ids = [&"enemy_pack_4"]
 elite_archetype = &"zoner"

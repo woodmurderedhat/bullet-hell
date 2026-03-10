@@ -8,6 +8,6 @@ id = &"elite_interceptor"
 display_name = "ELITE ARCHETYPE: INTERCEPTOR"
 description = "Enables interceptors with faster projectile interception pressure."
 category = 2
-cost = 130
+cost = 110
 required_unlock_ids = [&"enemy_pack_3"]
 elite_archetype = &"interceptor"

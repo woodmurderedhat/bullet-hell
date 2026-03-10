@@ -49,13 +49,16 @@ Meta rewards no longer focus on direct player-strength unlocks. Purchased expans
 
 ### First-Pass Cost Curve (Meta Currency)
 
-- Enemy packs: 40 → 220
-- Boss tiers: 80 → 320
-- Elite archetypes: 90 → 230
-- Damage tiers: 60 → 280
-- Intelligence tiers: 70 → 310
-- Arena profiles: 100 → 260
-- Challenge packs: 140 → 300
+Tuned so an average mid-run earns ~10–15 currency (`score / 250`), placing the
+cheapest unlock at roughly 3–4 runs for a typical player.
+
+- Enemy packs: 35 → 185
+- Boss tiers: 70 → 270
+- Elite archetypes: 75 → 195
+- Damage tiers: 50 → 240
+- Intelligence tiers: 60 → 265
+- Arena profiles: 85 → 220
+- Challenge packs: 120 → 255
 
 ## Runtime Effect Composition
 

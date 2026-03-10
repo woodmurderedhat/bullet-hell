@@ -8,6 +8,6 @@ id = &"elite_splitter"
 display_name = "ELITE ARCHETYPE: SPLITTER"
 description = "Enables splitter elites with volatile lane pressure."
 category = 2
-cost = 190
+cost = 160
 required_unlock_ids = [&"enemy_pack_4"]
 elite_archetype = &"splitter"

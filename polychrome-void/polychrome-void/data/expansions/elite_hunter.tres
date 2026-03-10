@@ -8,6 +8,6 @@ id = &"elite_hunter"
 display_name = "ELITE ARCHETYPE: HUNTER"
 description = "Enables hunter elites with stronger chase behavior."
 category = 2
-cost = 230
+cost = 195
 required_unlock_ids = [&"enemy_pack_5", &"intel_tier_3"]
 elite_archetype = &"hunter"
