@@ -4,7 +4,7 @@
 class_name Main
 extends Node2D
 
-const STANDARD_CLEAR_ARENAS: int = 3
+const STANDARD_CLEAR_ARENAS: int = 2
 const RUN_MENU_SCENE := preload("res://ui/RunMenuOverlay.gd")
 const DAMAGE_RAMP_PER_LEVEL_ENEMY: float = 0.006
 const DAMAGE_RAMP_PER_LEVEL_BOSS: float = 0.008

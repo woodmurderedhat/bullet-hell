@@ -61,7 +61,7 @@ func show_result_menu(won: bool, score: int, arena_reached: int, levels_cleared:
 	visible = true
 	_tutorial_returns_to_pause = false
 	_show_only(_result_panel)
-	_result_title.text = "RUN COMPLETE" if won else "RUN FAILED"
+	_result_title.text = "YOU WIN!" if won else "RUN FAILED"
 	_result_summary.text = "S %d\nL %d\nA %d\nT %.1fs\nK %d" % [
 		score,
 		levels_cleared,
