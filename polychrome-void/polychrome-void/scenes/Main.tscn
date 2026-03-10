@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://dk7dwjuro1b76"]
+[gd_scene load_steps=14 format=3 uid="uid://dk7dwjuro1b76"]
 
 [ext_resource type="Script" uid="uid://stqh2qqjy0i1" path="res://scenes/Main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://b3wsx8sa44cfl" path="res://combat/BulletManager.gd" id="2_bm"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" uid="uid://dq6in8gcpjh1t" path="res://ui/MetaMenu.gd" id="10_mm"]
 [ext_resource type="Script" uid="uid://bs1sb4a0peobo" path="res://combat/ShieldSystem.gd" id="11_ss"]
 [ext_resource type="Script" uid="uid://p1u7jbi6gfvd" path="res://systems/SwarmDirector.gd" id="12_sw"]
+[ext_resource type="Resource" path="res://data/player_visual_default.tres" id="13_pvc"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -51,6 +52,11 @@ script = ExtResource("5_up")
 [node name="Player" type="Node2D" parent="."]
 position = Vector2(640, 360)
 script = ExtResource("6_pl")
+visual_config = ExtResource("13_pvc")
+
+[node name="VisualSprite" type="Sprite2D" parent="Player"]
+visible = false
+centered = true
 
 [node name="ModifierComponent" type="Node" parent="Player"]
 script = ExtResource("7_mc")

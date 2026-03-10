@@ -4,6 +4,17 @@
 class_name Player
 extends Node2D
 
+enum VisualMode {
+	GEOMETRY,
+	SPRITE,
+}
+
+@export var visual_mode: VisualMode = VisualMode.GEOMETRY
+@export var visual_config: PlayerVisualConfig = null
+@export var auto_visual_from_config: bool = true
+
+const SPRITE_FRAME_SIZE: Vector2i = Vector2i(32, 32)
+
 ## Inner class for BASE player stats — values here are never modified by upgrades.
 ## Effective values are computed via ModifierComponent.get_stat(base, key).
 class PlayerStats:
@@ -68,6 +79,7 @@ var _gun_world_dir: Vector2 = Vector2.UP
 var _fire_spawn_budget: int = 0
 var _bullet_pressure: float = 0.0
 var _weapon_overheat_timer: float = 0.0
+var _visual_sprite: Sprite2D = null
 
 # Cached reference set by Main.tscn after _ready.
 var _bullet_manager: BulletManager = null
@@ -84,8 +96,50 @@ var _tri_verts: PackedVector2Array = PackedVector2Array()
 
 func _ready() -> void:
 	_build_tri_verts()
+	_visual_sprite = get_node_or_null("VisualSprite") as Sprite2D
+	if auto_visual_from_config and visual_config != null:
+		visual_mode = VisualMode.SPRITE if not visual_config.sprite_texture_path.is_empty() else VisualMode.GEOMETRY
+	_apply_visual_mode()
 	EventBus.bullet_hit_player.connect(_on_bullet_hit_player)
 	EventBus.run_ended.connect(_on_run_ended)
+
+
+func set_visual_mode(mode: VisualMode) -> void:
+	visual_mode = mode
+	_apply_visual_mode()
+
+
+func _apply_visual_mode() -> void:
+	if _visual_sprite == null:
+		return
+	_visual_sprite.visible = (visual_mode == VisualMode.SPRITE)
+	if visual_mode == VisualMode.SPRITE:
+		_apply_sprite_from_config()
+	queue_redraw()
+
+
+func _apply_sprite_from_config() -> void:
+	if _visual_sprite == null:
+		return
+	if visual_config == null or visual_config.sprite_texture_path.is_empty():
+		_visual_sprite.texture = null
+		return
+
+	if not ResourceLoader.exists(visual_config.sprite_texture_path):
+		push_warning("Player sprite texture not found: %s" % visual_config.sprite_texture_path)
+		_visual_sprite.texture = null
+		return
+
+	var tex: Texture2D = load(visual_config.sprite_texture_path) as Texture2D
+	if tex == null:
+		push_warning("Player sprite texture failed to load: %s" % visual_config.sprite_texture_path)
+		_visual_sprite.texture = null
+		return
+
+	_visual_sprite.texture = tex
+	_visual_sprite.region_enabled = true
+	_visual_sprite.region_rect = Rect2(visual_config.sprite_region_origin, SPRITE_FRAME_SIZE)
+	_update_sprite_modulate()
 
 
 func _build_tri_verts() -> void:
@@ -437,27 +491,35 @@ func _handle_invincibility(delta: float) -> void:
 		_is_hurt_flash = fmod(_invincibility_timer, 0.1) > 0.05
 	else:
 		_is_hurt_flash = false
+	if visual_mode == VisualMode.SPRITE and _visual_sprite != null:
+		_update_sprite_modulate()
+
+
+func _update_sprite_modulate() -> void:
+	var col: Color = COLOR_HURT if _is_hurt_flash else COLOR_ACTIVE
+	_visual_sprite.modulate = col
 
 
 func _draw() -> void:
-	var col: Color = COLOR_HURT if _is_hurt_flash else COLOR_ACTIVE
-	draw_colored_polygon(_tri_verts, col)
-	# Thin outline.
-	draw_polyline(_tri_verts + PackedVector2Array([_tri_verts[0]]),
-		Color(1.0, 1.0, 1.0, 0.6), 1.0)
+	if not (visual_mode == VisualMode.SPRITE and _visual_sprite != null):
+		var col: Color = COLOR_HURT if _is_hurt_flash else COLOR_ACTIVE
+		draw_colored_polygon(_tri_verts, col)
+		# Thin outline.
+		draw_polyline(_tri_verts + PackedVector2Array([_tri_verts[0]]),
+			Color(1.0, 1.0, 1.0, 0.6), 1.0)
 
-	var gun_col: Color = col
-	var mount: Vector2 = GUN_MOUNT_OFFSET
-	var gun_local_angle: float = _gun_world_dir.angle() - rotation
-	var gun_forward: Vector2 = Vector2.from_angle(gun_local_angle)
-	var gun_side: Vector2 = Vector2(-gun_forward.y, gun_forward.x)
-	var p0: Vector2 = mount - gun_side * GUN_BARREL_HALF_WIDTH
-	var p1: Vector2 = mount + gun_side * GUN_BARREL_HALF_WIDTH
-	var tip_base: Vector2 = mount + gun_forward * GUN_BARREL_LENGTH
-	var p2: Vector2 = tip_base + gun_side * GUN_BARREL_HALF_WIDTH
-	var p3: Vector2 = tip_base - gun_side * GUN_BARREL_HALF_WIDTH
-	draw_colored_polygon(PackedVector2Array([p0, p1, p2, p3]), gun_col)
-	draw_circle(mount, GUN_BODY_RADIUS, Color(1.0, 1.0, 1.0, 0.85))
+		var gun_col: Color = col
+		var mount: Vector2 = GUN_MOUNT_OFFSET
+		var gun_local_angle: float = _gun_world_dir.angle() - rotation
+		var gun_forward: Vector2 = Vector2.from_angle(gun_local_angle)
+		var gun_side: Vector2 = Vector2(-gun_forward.y, gun_forward.x)
+		var p0: Vector2 = mount - gun_side * GUN_BARREL_HALF_WIDTH
+		var p1: Vector2 = mount + gun_side * GUN_BARREL_HALF_WIDTH
+		var tip_base: Vector2 = mount + gun_forward * GUN_BARREL_LENGTH
+		var p2: Vector2 = tip_base + gun_side * GUN_BARREL_HALF_WIDTH
+		var p3: Vector2 = tip_base - gun_side * GUN_BARREL_HALF_WIDTH
+		draw_colored_polygon(PackedVector2Array([p0, p1, p2, p3]), gun_col)
+		draw_circle(mount, GUN_BODY_RADIUS, Color(1.0, 1.0, 1.0, 0.85))
 
 	if _bullet_pressure >= BULLET_PRESSURE_WARN_THRESHOLD or _weapon_overheat_timer > 0.0:
 		var pressure_t: float = inverse_lerp(BULLET_PRESSURE_WARN_THRESHOLD, 1.0, _bullet_pressure)

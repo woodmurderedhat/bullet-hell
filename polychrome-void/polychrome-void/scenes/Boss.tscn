@@ -4,3 +4,7 @@
 
 [node name="Boss" type="Node2D"]
 script = ExtResource("1_boss")
+
+[node name="VisualSprite" type="Sprite2D" parent="."]
+visible = false
+centered = true

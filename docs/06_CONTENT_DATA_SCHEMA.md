@@ -9,6 +9,12 @@
 - triggers
 - stack_limit
 
+## Player Visual Config
+- sprite_texture_path
+- sprite_region_origin
+- sprite_frame_count
+- sprite_fps
+
 ## Enemy Resource
 - id
 - base_hp
@@ -24,6 +30,12 @@
 - wave_frequency
 - wave_amplitude
 - color
+- sprite_idle_path
+- sprite_move_path
+- sprite_hit_path
+- sprite_death_path
+- hit_state_duration
+- death_state_duration
 - score_value
 
 ## Pattern Resource
@@ -62,6 +74,12 @@
 - speed
 - collision_radius
 - base_color
+- sprite_idle_path
+- sprite_move_path
+- sprite_hit_path
+- sprite_death_path
+- hit_state_duration
+- death_state_duration
 - score_value
 - phases
 

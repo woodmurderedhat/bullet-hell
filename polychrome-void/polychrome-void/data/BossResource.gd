@@ -24,6 +24,19 @@ extends Resource
 ## Visual tint for the boss polygon at full health.
 @export var base_color: Color = Color(1.0, 1.0, 0.2, 1.0)
 
+## Per-state sprite paths for 32x32 visual migration.
+## Leave all empty for geometry fallback rendering.
+@export_file("*.png") var sprite_idle_path: String = ""
+@export_file("*.png") var sprite_move_path: String = ""
+@export_file("*.png") var sprite_hit_path: String = ""
+@export_file("*.png") var sprite_death_path: String = ""
+
+## Duration (seconds) the hit sprite is shown after taking damage.
+@export_range(0.0, 1.0, 0.01) var hit_state_duration: float = 0.10
+
+## Duration (seconds) the death sprite is held before the node is freed.
+@export_range(0.0, 2.0, 0.01) var death_state_duration: float = 0.25
+
 ## Score reward when fully defeated.
 @export var score_value: int = 500
 

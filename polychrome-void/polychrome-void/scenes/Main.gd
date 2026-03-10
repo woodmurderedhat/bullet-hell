@@ -45,6 +45,7 @@ func _ready() -> void:
 	_ensure_pause_action()
 	_apply_saved_audio_settings()
 	_apply_saved_input_bindings()
+	_validate_actor_sprite_bindings()
 
 	# Wire systems.
 	if _shield_system != null and _shield_system.has_method("initialise"):
@@ -86,6 +87,83 @@ func _ready() -> void:
 	_run_menu.quit_to_menu_requested.connect(_return_to_meta_menu)
 	_run_menu.restart_requested.connect(_restart_run)
 	_run_menu.tutorial_closed.connect(_on_tutorial_closed)
+
+
+func _validate_actor_sprite_bindings() -> void:
+	_validate_player_sprite_binding()
+	_validate_enemy_sprite_bindings()
+	_validate_boss_sprite_bindings()
+
+
+func _validate_player_sprite_binding() -> void:
+	if _player.visual_mode != Player.VisualMode.SPRITE:
+		return
+	if _player.visual_config == null:
+		push_warning("Player visual mode is SPRITE but visual_config is not assigned.")
+		return
+	if _player.visual_config.sprite_texture_path.is_empty():
+		push_warning("Player visual config missing sprite_texture_path.")
+		return
+	if not ResourceLoader.exists(_player.visual_config.sprite_texture_path):
+		push_warning("Player sprite texture path does not exist: %s" % _player.visual_config.sprite_texture_path)
+
+
+func _validate_enemy_sprite_bindings() -> void:
+	var dir: DirAccess = DirAccess.open("res://data/enemies")
+	if dir == null:
+		push_warning("Sprite validation: unable to open res://data/enemies")
+		return
+
+	for file_name: String in dir.get_files():
+		if not file_name.ends_with(".tres"):
+			continue
+		var res_path: String = "res://data/enemies/%s" % file_name
+		var enemy_res: EnemyResource = load(res_path) as EnemyResource
+		if enemy_res == null:
+			push_warning("Sprite validation: failed to load enemy resource: %s" % res_path)
+			continue
+		# Empty idle path means geometry fallback is active; skip sprite validation.
+		if enemy_res.sprite_idle_path.is_empty():
+			continue
+		for state_path: String in [
+				enemy_res.sprite_idle_path,
+				enemy_res.sprite_move_path,
+				enemy_res.sprite_hit_path,
+				enemy_res.sprite_death_path,
+		]:
+			if state_path.is_empty():
+				push_warning("Enemy resource has incomplete sprite state paths: %s" % res_path)
+			elif not ResourceLoader.exists(state_path):
+				push_warning("Enemy sprite texture not found: %s (%s)" % [state_path, res_path])
+
+
+func _validate_boss_sprite_bindings() -> void:
+	var dir: DirAccess = DirAccess.open("res://data/bosses")
+	if dir == null:
+		push_warning("Sprite validation: unable to open res://data/bosses")
+		return
+
+	for file_name: String in dir.get_files():
+		if not file_name.ends_with(".tres"):
+			continue
+		var res_path: String = "res://data/bosses/%s" % file_name
+		var boss_res: BossResource = load(res_path) as BossResource
+		if boss_res == null:
+			push_warning("Sprite validation: failed to load boss resource: %s" % res_path)
+			continue
+		# Empty idle path means geometry fallback is active; skip sprite validation.
+		if boss_res.sprite_idle_path.is_empty():
+			continue
+		for state_path: String in [
+				boss_res.sprite_idle_path,
+				boss_res.sprite_move_path,
+				boss_res.sprite_hit_path,
+				boss_res.sprite_death_path,
+		]:
+			if state_path.is_empty():
+				push_warning("Boss resource has incomplete sprite state paths: %s" % res_path)
+			elif not ResourceLoader.exists(state_path):
+				push_warning("Boss sprite texture not found: %s (%s)" % [state_path, res_path])
 
 
 func _unhandled_input(event: InputEvent) -> void:
